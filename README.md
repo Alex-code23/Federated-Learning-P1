@@ -23,7 +23,7 @@ main.py
 | Implémenter CNN                                              | ✅ |  |  |  |  |
 | Organiser le code                                            | ✅ |  |  |  | YES |
 | Voir démos et lire en détail l'article et les arguments      |  | ✅ | ✅ |  |  |
-| Améliorer le plot                                            | ✅ |  |  |  |  |
+| Améliorer le plot                                            | ✅ |  |  |  | YES |
 | Ajouter la variance                                          | ✅ |  |  |  |  |
 | Apporter les grandes idées des théorèmes avec dessins        |  | ✅ | ✅ |  |  |
 | Explorer d'autres aggregators                                |  | ✅ |  |  |  |
