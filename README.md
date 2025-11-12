@@ -11,17 +11,17 @@ Tester, vérifier, améliorer et étendre
 ## Tâches
 
 
-| Tâche                                                       | Alexander | Noé | Cédric | Andrea |
-|-------------------------------------------------------------|:----------:|:---:|:-------:|:--------------:|
-| Implémenter CNN                                              | ✅ |  |  |  |
-| Organiser le code                                            | ✅ |  |  |  |
-| Voir démos et lire en détail l'article et les arguments      |  | ✅ | ✅ |  |
-| Améliorer le plot                                            | ✅ |  |  |  |
-| Ajouter la variance                                          | ✅ |  |  |  |
-| Apporter les grandes idées des théorèmes avec dessins        |  | ✅ | ✅ |  |
-| Explorer d'autres aggregators                                |  | ✅ |  |  |
-| Améliorer les stratégies d'attaques (byzantin)               | ✅ | ✅ |  |  |
-| Apporter des idées de dataset                                | ✅ | ✅ | ✅ | ✅ |
+| Tâche                                                       | Alexander | Noé | Cédric | Andrea | DONE |
+|-------------------------------------------------------------|:----------:|:---:|:-------:|:--------------:|:-------:|
+| Implémenter CNN                                              | ✅ |  |  |  |  |
+| Organiser le code                                            | ✅ |  |  |  | YES |
+| Voir démos et lire en détail l'article et les arguments      |  | ✅ | ✅ |  |  |
+| Améliorer le plot                                            | ✅ |  |  |  |  |
+| Ajouter la variance                                          | ✅ |  |  |  |  |
+| Apporter les grandes idées des théorèmes avec dessins        |  | ✅ | ✅ |  |  |
+| Explorer d'autres aggregators                                |  | ✅ |  |  |  |
+| Améliorer les stratégies d'attaques (byzantin)               | ✅ | ✅ |  |  |  |
+| Apporter des idées de dataset                                | ✅ | ✅ | ✅ | ✅ |  |
 
 
 ## Licence
