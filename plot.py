@@ -4,15 +4,28 @@ import matplotlib.pyplot as plt
 
 # ---------------------- Plotting helpers ----------------------
 
-def plot_results(results_dict, save_file=None, title='Accuracies'):
-    plt.figure(figsize=(8,5))
+def plot_results(results_dict, save_file=None, title=None):
+    plt.figure(figsize=(12,5))
+    plt.subplot(1,2,1)
     for label, stats in results_dict.items():
         plt.plot(stats['accs'], label=label)
     plt.xlabel('Communication rounds')
     plt.ylabel('Test accuracy')
-    plt.title(title)
     plt.legend()
     plt.grid(True)
+    plt.title('Test Accuracy')
+
+    plt.subplot(1,2,2)
+    for label, stats in results_dict.items():
+        plt.plot(stats['losses'], label=label)
+    plt.xlabel('Communication rounds')
+    plt.ylabel('Test loss')
+    plt.legend()
+    plt.grid(True)
+    plt.title('Test Loss')
+
+    plt.suptitle(title)
+    
     if save_file:
         # if folder does not exist, create it
         folder = os.path.dirname(save_file)
@@ -27,9 +40,11 @@ def plot_xi_A(stats, save_file=None,title='Heterogeneity and Disturbance'):
     plt.subplot(1,2,1)
     plt.plot(stats['xi'])
     plt.title('Heterogeneity (xi)')
+
     plt.subplot(1,2,2)
     plt.plot(stats['A'])
     plt.title('Disturbance (A)')
+
     plt.suptitle(title)
     if save_file:
         # if folder does not exist, create it

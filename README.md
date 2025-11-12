@@ -8,6 +8,13 @@
 
 Tester, vérifier, améliorer et étendre
 
+## Lancement du programme
+
+Aller sur 
+```bash
+main.py
+```
+
 ## Tâches
 
 
