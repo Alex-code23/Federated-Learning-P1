@@ -27,10 +27,12 @@ main.py
 | Ajouter la variance                                          | ✅ |  |  |  | YES |
 | Apporter les grandes idées des théorèmes avec dessins        |  | ✅ | ✅ |  |  |
 | Explorer d'autres aggregators                                |  | ✅ |  |  |  |
-| Améliorer les stratégies d'attaques (byzantin)               | ✅ | ✅ |  |  |  |
+| Améliorer les stratégies d'attaques (byzantin)               | ✅ | ✅ |  |  | YES |
 | Tester théoriqument quand on change de modèles               |  |  |  | ✅ |  |
 Tester théoriqument quand on change de stratégies              |  |  |  | ✅ |  |
 | Apporter des idées de dataset                                | ✅ | ✅ | ✅ | ✅ |  |
 
 
 ## Licence
+
+Ecole Polytechnique

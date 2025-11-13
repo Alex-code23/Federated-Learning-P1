@@ -100,30 +100,31 @@ def run_simulation(
             x_batch, y_batch = worker.sample_batch(batch_size=local_batch)
 
             # ---------- Label-level attacks ----------
-            if attack_type == 'static':
-                y_batch = torch.from_numpy(static_flip(y_batch, prob=flip_prob)).long()
-            elif attack_type == 'targeted':
-                y_batch = torch.from_numpy(targeted_flip(y_batch, target_class=0, prob=flip_prob)).long()
-            elif attack_type == 'partial':
-                y_batch = torch.from_numpy(partial_poisoning(y_batch, frac=0.5)).long()
-            elif attack_type == 'dynamic':
-                new_labels = dynamic_flip_batch(model, x_batch, y_batch, device)
-                y_batch = torch.from_numpy(new_labels).long()
-            elif attack_type == 'confidence':
-                new_labels = confidence_based_flip_batch(model, x_batch, y_batch, device, threshold=0.6)
-                y_batch = torch.from_numpy(new_labels).long()
-            elif attack_type == 'backdoor':
-                x_batch, y_batch = backdoor_poisoning(x_batch, y_batch, fraction=0.1, target_class=0)
+            if worker.poisoned:
+                if attack_type == 'static':
+                    y_batch = static_flip(y_batch, prob=flip_prob).long()
+                elif attack_type == 'targeted':
+                    y_batch = targeted_flip(y_batch, target_class=0, prob=flip_prob).long()
+                elif attack_type == 'partial':
+                    y_batch = partial_poisoning(y_batch, frac=0.5).long()
+                elif attack_type == 'dynamic':
+                    new_labels = dynamic_flip_batch(model, x_batch, y_batch, device)
+                    y_batch = new_labels.long()
+                elif attack_type == 'confidence':
+                    new_labels = confidence_based_flip_batch(model, x_batch, y_batch, device, threshold=0.6)
+                    y_batch = new_labels.long()
+                elif attack_type == 'backdoor':
+                    x_batch, y_batch = backdoor_poisoning(x_batch, y_batch, fraction=0.1, target_class=0)
 
 
-            # if worker.poisoned and attack_type == 'dynamic':
-            #     # flip labels according to global model
-            #     new_labels = dynamic_flip_batch(model, x_batch, y_batch, device)
-            #     y_batch = torch.from_numpy(new_labels).long()
+            # put all on same device
+            x_batch = x_batch.to(device)
+            y_batch = y_batch.to(device)
 
             # ---------- Local gradient computation ----------
             m_prev = momenta[w]
-            m, local_loss = worker.local_gradient(model, loss_fn, x_batch, y_batch, momentum_state=m_prev, alpha=alpha)
+            # m, local_loss = worker.local_gradient(model, loss_fn, x_batch, y_batch, momentum_state=m_prev, alpha=alpha)
+            m, local_loss = worker.local_gradient_on_model(model, loss_fn, x_batch, y_batch, alpha=alpha, momentum_state=m_prev)
 
             # ---------- Gradient-level attacks ----------
             if worker.poisoned:
