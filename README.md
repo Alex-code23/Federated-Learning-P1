@@ -20,14 +20,16 @@ main.py
 
 | Tâche                                                       | Alexander | Noé | Cédric | Andrea | DONE |
 |-------------------------------------------------------------|:----------:|:---:|:-------:|:--------------:|:-------:|
-| Implémenter CNN                                              | ✅ |  |  |  |  |
+| Implémenter CNN                                              | ✅ |  |  |  | YES |
 | Organiser le code                                            | ✅ |  |  |  | YES |
 | Voir démos et lire en détail l'article et les arguments      |  | ✅ | ✅ |  |  |
 | Améliorer le plot                                            | ✅ |  |  |  | YES |
-| Ajouter la variance                                          | ✅ |  |  |  |  |
+| Ajouter la variance                                          | ✅ |  |  |  | YES |
 | Apporter les grandes idées des théorèmes avec dessins        |  | ✅ | ✅ |  |  |
 | Explorer d'autres aggregators                                |  | ✅ |  |  |  |
 | Améliorer les stratégies d'attaques (byzantin)               | ✅ | ✅ |  |  |  |
+| Tester théoriqument quand on change de modèles               |  |  |  | ✅ |  |
+Tester théoriqument quand on change de stratégies              |  |  |  | ✅ |  |
 | Apporter des idées de dataset                                | ✅ | ✅ | ✅ | ✅ |  |
 
 

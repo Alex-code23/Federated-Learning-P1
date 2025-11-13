@@ -110,7 +110,7 @@ def plot_partitions_aggregators(results_by_partition, partition_list, save_file=
         plt.show()
 
 
-def plot_xi_A(stats, save_file=None, title='Heterogeneity and Disturbance'):
+def plot_xi_A(stats, save_file=None, title='Heterogeneity, Disturbance and Variance'):
     plt.figure(figsize=(10,4))
     plt.subplot(1,2,1)
     plt.plot(stats['xi'])
@@ -138,7 +138,7 @@ def plot_xi_A_partitions(results_by_partition, partition_list, save_file=None, t
     results_by_partition : dict[partition][aggregator] = stats
     """
     n_part = len(partition_list)
-    fig, axes = plt.subplots(2, n_part, figsize=(5*n_part, 8), squeeze=False)
+    fig, axes = plt.subplots(3, n_part, figsize=(5*n_part, 12), squeeze=False)
 
     for col, PART in enumerate(partition_list):
         if PART not in results_by_partition:
@@ -169,7 +169,19 @@ def plot_xi_A_partitions(results_by_partition, partition_list, save_file=None, t
         if col == 0:
             ax_A.legend(loc='upper right', fontsize='small')
 
-    plt.suptitle(title or 'Comparison of xi and A across partitions')
+        # Ligne 2 = Variance
+        ax_var = axes[2][col]
+        for agg, stats in results.items():
+            if 'variance' in stats:
+                ax_var.plot(stats['variance'], label=agg)
+        ax_var.set_title(f'Variance of messages — {PART}')
+        ax_var.set_xlabel('Rounds')
+        ax_var.set_ylabel('Variance')
+        ax_var.grid(True)
+        if col == 0:
+            ax_var.legend(loc='upper right', fontsize='small')
+
+    plt.suptitle(title or 'Comparison of xi, A and Variance across partitions')
     plt.tight_layout(rect=[0, 0.03, 1, 0.95])
 
     if save_file:

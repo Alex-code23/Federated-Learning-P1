@@ -18,7 +18,7 @@ from plot import plot_results, plot_xi_A, plot_partitions_aggregators, plot_xi_A
 
 # Device configuration
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-print(f'Using device: {DEVICE}')
+print(f'\n\n --------> Using device: {DEVICE} --------------\n\n')
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
@@ -84,6 +84,7 @@ def run_simulation(
 
     accs = []
     losses = []
+    variance = []
     heterogeneity_xi = []
     disturbance_A = []
 
@@ -158,13 +159,15 @@ def run_simulation(
                 total += xb.size(0)
         accs.append(correct / total)
         losses.append(total_loss / total)
+        variance.append(np.var(msgs, axis=0).mean())
 
         if verbose and (t % max(1, T//10) == 0):
-            print(f"Iter {t}/{T}  test_acc={accs[-1]:.4f} test_loss={losses[-1]:.4f} xi={xi_val:.4e} A={A_val:.4e}")
+            print(f"Iter {t}/{T}  test_acc={accs[-1]:.4f} test_loss={losses[-1]:.4f} variance={variance[-1]:.4e} xi={xi_val:.4e} A={A_val:.4e}")
 
     stats = {
         'accs': accs,
         'losses': losses,
+        'variance': variance,
         'xi': heterogeneity_xi,
         'A': disturbance_A
     }
@@ -176,6 +179,7 @@ def run_simulation(
 if __name__ == '__main__':
     # load MNIST (assume imports and datasets/transforms disponibles dans ton script principal)
     from torchvision import datasets, transforms
+    from datetime import datetime
 
     transform = transforms.Compose([transforms.ToTensor()])
     trainset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
@@ -184,7 +188,7 @@ if __name__ == '__main__':
     # quick demo
     W = 10         # total workers
     R = 8         # regular (non-poisoned) workers
-    T = 50      # iterations (petit pour demo)
+    T = 500      # iterations (petit pour demo)
 
     partition_list = ['iid', 'dirichlet', 'noniid']
     attack_list = ['static', 'dynamic']
@@ -229,8 +233,12 @@ if __name__ == '__main__':
                 # except Exception as e:
                 #     print('plot_xi_A skipped or failed:', e)
 
+            # datetime H-J-M-Y
+            now = datetime.now()
+            dt_string = now.strftime("%d-%m-%Y_%H-%M")
+
             # Après avoir collecté tous les résultats, tracer les comparaisons côte-à-côte
-            FOLDER_PLOT = f'plots/{MODEL}/'
+            FOLDER_PLOT = f'plots/{dt_string}/{MODEL}/'
             if not os.path.exists(FOLDER_PLOT):
                 os.makedirs(FOLDER_PLOT, exist_ok=True)
 
@@ -238,7 +246,7 @@ if __name__ == '__main__':
                 results_by_partition,
                 partition_list,
                 save_file=f'{FOLDER_PLOT}/{ATTACK}_xi_A_comparison_partitions.png',
-                title='xi and A comparison across partitions'
+                title='xi, A and Variance comparison across partitions'
             )
 
             plot_partitions_aggregators(
@@ -250,19 +258,19 @@ if __name__ == '__main__':
             )
 
             # Save results as csv (un seul fichier consolidé)
-            FOLDER = f'data_results/{MODEL}/'
+            FOLDER = f'data_results/{dt_string}/{MODEL}/'
             if not os.path.exists(FOLDER):
                 os.makedirs(FOLDER, exist_ok=True)
             filename = f'{FOLDER}/{ATTACK}_all_partitions_mnist_agg_results.csv'
             with open(filename, 'w') as f:
-                f.write('Model,Attack,Partition,Aggregator,Iteration,TestAccuracy,TestLoss,xi,A\n')
+                f.write('Model,Attack,Partition,Aggregator,Iteration,TestAccuracy,TestLoss,Variance,xi,A\n')
                 for PARTITION, part_results in results_by_partition.items():
                     for agg, stats in part_results.items():
                         n = len(stats['accs'])
                         for t in range(n):
                             xi_t = stats['xi'][t] if 'xi' in stats and t < len(stats['xi']) else ''
                             A_t = stats['A'][t] if 'A' in stats and t < len(stats['A']) else ''
-                            f.write(f"{MODEL},{ATTACK},{PARTITION},{agg},{t},{stats['accs'][t]},{stats['losses'][t]},{xi_t},{A_t}\n")
+                            f.write(f"{MODEL},{ATTACK},{PARTITION},{agg},{t},{stats['accs'][t]},{stats['losses'][t]},{stats['variance']},{xi_t},{A_t}\n")
             print(filename, 'saved.')
 
             print('\n\n End of attack type:', ATTACK)
