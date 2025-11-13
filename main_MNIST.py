@@ -13,7 +13,7 @@ from data_partition import partition_iid, partition_dirichlet, partition_noniid_
 from worker import Worker
 from aggregators import AGGREGATORS
 from models import SoftmaxModel, TwoLayerMLP, CNNModel
-from label_poisoning import dynamic_flip_batch
+from label_poisoning import dynamic_flip_batch, targeted_flip, partial_poisoning, confidence_based_flip_batch, backdoor_poisoning, static_flip, sign_flip_attack, scale_attack, stealthy_scaled_attack, craft_model_replacement_vector
 from plot import plot_results, plot_xi_A, plot_partitions_aggregators, plot_xi_A_partitions
 
 # Device configuration
@@ -98,12 +98,46 @@ def run_simulation(
         # For dynamic attack, poisoned worker uses global model to determine least likely class
         for w, worker in enumerate(workers):
             x_batch, y_batch = worker.sample_batch(batch_size=local_batch)
-            if worker.poisoned and attack_type == 'dynamic':
-                # flip labels according to global model
+
+            # ---------- Label-level attacks ----------
+            if attack_type == 'static':
+                y_batch = torch.from_numpy(static_flip(y_batch, prob=flip_prob)).long()
+            elif attack_type == 'targeted':
+                y_batch = torch.from_numpy(targeted_flip(y_batch, target_class=0, prob=flip_prob)).long()
+            elif attack_type == 'partial':
+                y_batch = torch.from_numpy(partial_poisoning(y_batch, frac=0.5)).long()
+            elif attack_type == 'dynamic':
                 new_labels = dynamic_flip_batch(model, x_batch, y_batch, device)
                 y_batch = torch.from_numpy(new_labels).long()
+            elif attack_type == 'confidence':
+                new_labels = confidence_based_flip_batch(model, x_batch, y_batch, device, threshold=0.6)
+                y_batch = torch.from_numpy(new_labels).long()
+            elif attack_type == 'backdoor':
+                x_batch, y_batch = backdoor_poisoning(x_batch, y_batch, fraction=0.1, target_class=0)
+
+
+            # if worker.poisoned and attack_type == 'dynamic':
+            #     # flip labels according to global model
+            #     new_labels = dynamic_flip_batch(model, x_batch, y_batch, device)
+            #     y_batch = torch.from_numpy(new_labels).long()
+
+            # ---------- Local gradient computation ----------
             m_prev = momenta[w]
             m, local_loss = worker.local_gradient(model, loss_fn, x_batch, y_batch, momentum_state=m_prev, alpha=alpha)
+
+            # ---------- Gradient-level attacks ----------
+            if worker.poisoned:
+                if attack_type == 'signflip':
+                    m = sign_flip_attack(m, epsilon=1.0)
+                elif attack_type == 'scale':
+                    m = scale_attack(m, scale=5.0)
+                elif attack_type == 'stealth':
+                    target_dir = np.random.randn(*m.shape)
+                    m = stealthy_scaled_attack(m, target_dir, scale=0.5)
+                elif attack_type == 'modelreplace':
+                    target_vec = np.random.randn(*m.shape)
+                    m = craft_model_replacement_vector(m, target_vec, gamma)
+
             momenta[w] = m
             msgs.append(m)
             local_losses.append(local_loss)
@@ -188,11 +222,17 @@ if __name__ == '__main__':
     # quick demo
     W = 10         # total workers
     R = 8         # regular (non-poisoned) workers
-    T = 500      # iterations (petit pour demo)
+    T = 200      # iterations (petit pour demo)
 
     partition_list = ['iid', 'dirichlet', 'noniid']
-    attack_list = ['static', 'dynamic']
+    attack_list = ['static', 'dynamic', 'targeted', 'partial', 'confidence', 'backdoor', 
+                   'signflip', 'scale', 'stealth', 'modelreplace']
     model_list = ['softmax', 'mlp', 'cnn']
+
+
+    # datetime H-J-M-Y
+    now = datetime.now()
+    dt_string = now.strftime("%d-%m-%Y_%H-%M")
 
     for MODEL in model_list:
         print(f'\n\n========== Model type: {MODEL} ==========')
@@ -232,10 +272,6 @@ if __name__ == '__main__':
                 #     plot_xi_A(results['Mean'], save_file=f'plots/xi_A_mean_{PARTITION}.png', title=f'Mean: xi and A over iterations ({PARTITION})')
                 # except Exception as e:
                 #     print('plot_xi_A skipped or failed:', e)
-
-            # datetime H-J-M-Y
-            now = datetime.now()
-            dt_string = now.strftime("%d-%m-%Y_%H-%M")
 
             # Après avoir collecté tous les résultats, tracer les comparaisons côte-à-côte
             FOLDER_PLOT = f'plots/{dt_string}/{MODEL}/'

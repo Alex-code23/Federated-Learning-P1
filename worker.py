@@ -24,9 +24,9 @@ class Worker:
         data, labels = zip(*[self.dataset[i] for i in sel])
         x = torch.stack(data)
         y = np.array(labels)
-        if self.poisoned and self.attack_type == 'static':
-            y = static_flip(y, prob=self.flip_prob)
-            y = torch.from_numpy(y).long()
+        # if self.poisoned and self.attack_type == 'static':
+        #     y = static_flip(y, prob=self.flip_prob)
+        #     y = torch.from_numpy(y).long()
         return x, y
 
     def local_gradient(self, model: nn.Module, loss_fn, x_batch, y_batch, momentum_state=None, alpha=0.1):
