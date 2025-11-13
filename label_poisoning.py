@@ -220,4 +220,7 @@ def craft_model_replacement_vector(current_model_vec, target_model_vec, gamma):
     """
     current_model_vec = _to_tensor(current_model_vec)
     target_model_vec = _to_tensor(target_model_vec).to(current_model_vec.device)
-    return (current_model_vec - target_model_vec) / float(gamma)
+    value = (current_model_vec - target_model_vec) / float(gamma)
+    # clip to avoid overflow
+    value = torch.clamp(value, -1e6, 1e6)
+    return value
