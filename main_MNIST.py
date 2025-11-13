@@ -307,7 +307,7 @@ if __name__ == '__main__':
                         for t in range(n):
                             xi_t = stats['xi'][t] if 'xi' in stats and t < len(stats['xi']) else ''
                             A_t = stats['A'][t] if 'A' in stats and t < len(stats['A']) else ''
-                            f.write(f"{MODEL},{ATTACK},{PARTITION},{agg},{t},{stats['accs'][t]},{stats['losses'][t]},{stats['variance']},{xi_t},{A_t}\n")
+                            f.write(f"{MODEL},{ATTACK},{PARTITION},{agg},{t},{stats['accs'][t]},{stats['losses'][t]},{stats['variance'][t]},{xi_t},{A_t}\n")
             print(filename, 'saved.')
 
             print('\n\n End of attack type:', ATTACK)
