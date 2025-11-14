@@ -30,9 +30,9 @@ AGGREGATORS = {
     'Mean': agg_mean,
     'TriMean': lambda m: agg_trimmed_mean(m, trim_ratio=0.2),
     # 'CoordMedian': agg_coord_median,
-    # 'CC': lambda m: agg_centered_clipping(m, clip_threshold=1.0),
-    # 'FABA': lambda m: agg_faba_simple(m, remove_frac=0.1),
-    # 'LFighter': lambda m: agg_lfighter_simple(m, n_clusters=2)
+    'CC': lambda m: agg_centered_clipping(m, clip_threshold=1.0),
+    'FABA': lambda m: agg_faba_simple(m, remove_frac=0.1),
+    'LFighter': lambda m: agg_lfighter_simple(m, n_clusters=2)
 }
 
 # ---------------------- Simulation engine ----------------------
@@ -192,7 +192,7 @@ def run_simulation(
                 pointer += numel
 
         # Evaluate periodically instead of every round
-        if t % 10 == 0 or t == T - 1:
+        if t % 3 == 0 or t == T - 1:
             model.eval()
             correct, total, total_loss = 0, 0, 0.0
             with torch.no_grad():
@@ -238,7 +238,7 @@ if __name__ == '__main__':
     # quick demo
     W = 10         # total workers
     R = 8         # regular (non-poisoned) workers
-    T = 200      # iterations (petit pour demo)
+    T = 400      # iterations (petit pour demo)
 
     partition_list = ['iid', 'noniid']
     # one attack and one model
@@ -354,7 +354,7 @@ if __name__ == '__main__':
             ax_acc.set_xlabel('Communication rounds')
             ax_acc.set_ylabel('Test accuracy')
             ax_acc.set_title(f'Accuracy — {PART}')
-            ax_acc.set_ylim(acc_inf, acc_sup)
+            ax_acc.set_ylim(acc_sup - acc_sup * 0.3 , acc_sup)
             ax_acc.grid(True)
             if col == 0:
                 ax_acc.legend(loc='lower right', fontsize='small')
