@@ -3,32 +3,38 @@ import copy
 import numpy as np
 import torch
 import torch.nn as nn
+from torch.utils.data import DataLoader, Subset
 
 from label_poisoning import static_flip
 
 # ---------------------- Worker & server simulation ----------------------
 
 class Worker:
-    def __init__(self, data_idx, dataset, device='cpu', poisoned=False, attack_type='static', flip_prob=1.0):
+    def __init__(self, data_idx, dataset, device='cpu', poisoned=False, attack_type='static', flip_prob=1.0, batch_size=32):
         self.idx = data_idx
-        self.dataset = dataset
         self.poisoned = poisoned
         self.device = device
         self.attack_type = attack_type
         self.flip_prob = flip_prob
         self.samples = data_idx
-        # Precompute local DataLoader (shuffle at each epoch)
+        
+        # Use a Subset and DataLoader for efficient batch sampling
+        subset = Subset(dataset, self.samples)
+        self.loader = DataLoader(subset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True)
+        self.loader_iter = iter(self.loader)
 
-    def sample_batch(self, batch_size=32):
-        sel = np.random.choice(self.samples, size=min(batch_size, len(self.samples)), replace=False)
-        data, labels = zip(*[self.dataset[i] for i in sel])
-        x = torch.stack(data).to(self.device, non_blocking=True)
-        y = torch.tensor(labels, dtype=torch.long, device=self.device)
+    def sample_batch(self):
+        try:
+            x, y = next(self.loader_iter)
+        except StopIteration:
+            self.loader_iter = iter(self.loader)
+            x, y = next(self.loader_iter)
         return x, y
 
     def local_gradient(self, model: nn.Module, loss_fn, x_batch, y_batch, momentum_state=None, alpha=0.1):
         # compute gradient of loss on this batch and return momentum vector as message
-        model_local = copy.deepcopy(model).to(self.device)
+        # model_local = copy.deepcopy(model).to(self.device)
+        model_local = model
         model_local.train()
         # set parameters to the same as server model
         model_local.load_state_dict(model.state_dict())
@@ -90,10 +96,10 @@ class Worker:
         grad_vec = torch.cat(grad_list)
         # momentum
         if momentum_state is None:
-            m = grad_vec.cpu()   # keep momenta as numpy if you want, else keep torch
+            m = grad_vec
         else:
             # if momentum_state stored as numpy, convert: but for speed better store momenta as torch on device
-            m = ((1.0 - alpha) * momentum_state.to(device) + alpha * grad_vec).cpu()
+            m = (1.0 - alpha) * momentum_state + alpha * grad_vec
         # clear grads
         model.zero_grad(set_to_none=True)
-        return m, loss.item()
+        return m.detach(), loss.item()

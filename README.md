@@ -95,6 +95,8 @@ main.py
 | Voir démos et lire en détail l'article et les arguments      |  | ✅ | ✅ |  |  |
 | Améliorer le plot                                            | ✅ |  |  |  | YES |
 | Ajouter la variance                                          | ✅ |  |  |  | YES |
+| Ajouter intervalles de confiance des valeurs                 | ✅ |  |  |  | YES |
+| Optimiser GPU et vectoriser le code                          | ✅ |  |  |  |  |
 | Apporter les grandes idées des théorèmes avec dessins        |  | ✅ | ✅ |  |  |
 | Explorer d'autres aggregators                                |  | ✅ |  |  |  |
 | Améliorer les stratégies d'attaques (byzantin)               | ✅ | ✅ |  |  | YES |
