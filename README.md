@@ -96,12 +96,14 @@ main.py
 | Améliorer le plot                                            | ✅ |  |  |  | YES |
 | Ajouter la variance                                          | ✅ |  |  |  | YES |
 | Ajouter intervalles de confiance des valeurs                 | ✅ |  |  |  | YES |
-| Optimiser GPU et vectoriser le code                          | ✅ |  |  |  |  |
+| Optimiser GPU et vectoriser le code                          | ✅ |  |  |  | En cours |
 | Apporter les grandes idées des théorèmes avec dessins        |  | ✅ | ✅ |  |  |
 | Explorer d'autres aggregators                                |  | ✅ |  |  |  |
 | Améliorer les stratégies d'attaques (byzantin)               | ✅ | ✅ |  |  | YES |
 | Tester théoriquement quand on change de modèles              |  |  |  | ✅ |  |
 | Tester théoriquement quand on change de stratégies           |  |  |  | ✅ |  |
+| Coder avec d'autres types de dataset                         | ✅ |  |  |  |  |
+| Coder d'autres distributions de dataset                      | ✅ |  |  |  |  |
 | Apporter des idées de dataset                                | ✅ | ✅ | ✅ | ✅ |  |
 
 ---
