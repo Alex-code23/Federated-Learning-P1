@@ -162,6 +162,7 @@ Ce projet vise à tester, vérifier, améliorer et étendre les expériences de 
 | Coder avec d'autres types de dataset                         | ✅ |  |  |  |  |
 | Coder d'autres distributions de dataset                      | ✅ |  |  |  |  |
 | Apporter des idées de dataset                                | ✅ | ✅ | ✅ | ✅ |  |
+| Tester le cas $A\delta < \rho \xi$ (pas de supériorité du mean a priori)                         |  |  |  |  |  |
 
 ---
 
