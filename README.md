@@ -157,7 +157,7 @@ Ce projet vise à tester, vérifier, améliorer et étendre les expériences de 
 | Apporter les grandes idées des théorèmes avec dessins        |  | ✅ | ✅ |  | En cours |
 | Explorer d'autres aggregators                                |  | ✅ |  |  |  |
 | Améliorer les stratégies d'attaques (byzantin)               | ✅ | ✅ |  |  | YES |
-| Tester théoriquement quand on change de modèles              |  |  |  | ✅ |  |
+| Tester théoriquement quand on change de modèles              |  |  |  | ✅ | En cours pour moins d'hétérogénéité ($A$ petit) |
 | Tester théoriquement quand on change de stratégies           |  |  |  | ✅ |  |
 | Coder avec d'autres types de dataset                         | ✅ |  |  |  |  |
 | Coder d'autres distributions de dataset                      | ✅ |  |  |  |  |
