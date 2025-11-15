@@ -3,7 +3,7 @@
 ## Article
 
 [Mean Aggregator is More Robust than Robust Aggregators under Label Poisoning Attacks on Distributed Heterogeneous Data](https://arxiv.org/abs/2404.13647)
-
+ 
 ### Résumé de l’article
 
 Cet article remet en question une idée reçue dans l’apprentissage fédéré : les **agrégateurs dits "robustes"** (comme Median, Trimmed Mean ou Krum) ne sont pas nécessairement plus performants que la **moyenne simple (Mean Aggregator)** face à certaines attaques, notamment les **attaques de type "Label Poisoning"** sur des données **non-i.i.d. (hétérogènes)**.
@@ -21,6 +21,66 @@ En résumé :
 1. **Analyse théorique** : les auteurs montrent pourquoi la moyenne simple reste compétitive dans des environnements non i.i.d.
 2. **Études expérimentales** : sur plusieurs datasets (comme MNIST, CIFAR-10, FEMNIST), le Mean Aggregator surpasse des agrégateurs robustes sous attaques label-poisoning.
 3. **Discussion pratique** : les méthodes robustes supposent souvent une homogénéité des données entre clients, hypothèse rarement vraie dans la pratique.
+
+---
+
+## Structure du Projet
+
+Le projet est organisé en plusieurs modules Python qui séparent les différentes logiques de la simulation.
+
+- **`main_MNIST.py`**: Script principal pour lancer des batteries d'expériences. Il itère sur différentes partitions de données, types d'attaques et modèles, puis sauvegarde les résultats (métriques et graphiques).
+- **`main_inter.py`**: Script spécialisé pour obtenir des résultats statistiquement robustes (avec intervalles de confiance) pour une configuration d'attaque/modèle donnée, en répétant la simulation plusieurs fois.
+- **`simu.py`**: Contient le moteur de la simulation (`run_simulation`). Cette fonction orchestre l'entraînement fédéré sur plusieurs tours de communication, de la distribution des données aux clients à l'agrégation des mises à jour.
+- **`worker.py`**: Définit la classe `Worker` qui simule un client. Chaque client possède ses propres données locales et est capable de calculer une mise à jour du modèle (gradient).
+- **`aggregators.py`**: Implémente les différentes fonctions d'agrégation (Mean, TriMean, FABA, etc.) qui combinent les mises à jour des clients au niveau du serveur.
+- **`data_partition.py`**: Fournit des fonctions pour distribuer les données d'entraînement entre les clients selon différentes stratégies (IID, Dirichlet, non-IID pathologique, etc.) pour simuler l'hétérogénéité des données.
+- **`models.py`**: Définit les architectures des modèles neuronaux utilisés (Softmax, MLP, CNN).
+- **`label_poisoning.py`**: Contient l'implémentation des différentes stratégies d'attaque, qu'elles soient au niveau des données (label-flipping) ou des gradients (sign-flipping, model replacement).
+- **`plot.py`**: Regroupe des fonctions utilitaires pour générer les graphiques à partir des résultats des simulations.
+
+---
+
+## Comment lancer les simulations ?
+
+### 1. Lancement d'une batterie d'expériences (`main_MNIST.py`)
+
+Ce script est idéal pour comparer rapidement l'impact de différentes configurations.
+
+**Fonctionnement :**
+1.  Il définit des listes de configurations à tester : `partition_list`, `attack_list`, `model_list`.
+2.  Il boucle sur chaque combinaison (modèle, attaque, partition).
+3.  Pour chaque combinaison, il appelle `run_simulation` et stocke les métriques (accuracy, loss, variance, xi, A).
+4.  À la fin de chaque type d'attaque, il génère deux types de graphiques :
+    -   `{ATTACK}_aggregator_comparison_partitions_mnist.png`: Compare les performances des agrégateurs pour chaque partition de données.
+    -   `{ATTACK}_xi_A_comparison_partitions.png`: Compare les métriques d'hétérogénéité (ξ) et de perturbation (A) pour chaque partition.
+5.  Les résultats bruts sont sauvegardés dans un fichier CSV consolidé.
+
+**Pour l'exécuter :**
+
+```bash
+python main_MNIST.py
+```
+
+Les résultats sont sauvegardés dans les dossiers `plots/` et `data_results/`, organisés par date et par modèle.
+
+### 2. Lancement d'une simulation avec intervalles de confiance (`main_inter.py`)
+
+Ce script est conçu pour produire des graphiques plus fiables en répétant `N` fois la même simulation pour lisser les effets aléatoires (initialisation du modèle, échantillonnage des données).
+
+**Fonctionnement :**
+1.  Fixez une configuration unique (un seul `ATTACK` et `MODEL`).
+2.  Le script exécute la simulation `N` fois (par exemple, `N=10`).
+3.  Il accumule les résultats de chaque exécution.
+4.  Il calcule la **moyenne** et l'**intervalle de confiance à 95%** pour chaque métrique à chaque tour de communication.
+5.  Il génère des graphiques montrant la performance moyenne des agrégateurs, avec une bande d'incertitude.
+
+**Pour l'exécuter :**
+
+```bash
+python main_inter.py
+```
+
+Les graphiques et le CSV contenant les moyennes et les intervalles de confiance sont également sauvegardés dans `plots/` et `data_results/`.
 
 ---
 
@@ -76,14 +136,7 @@ Limite : dépend du nombre de clusters et de la distribution des données ; sens
 
 ## Missions
 
-Tester, vérifier, améliorer et étendre
-
-## Lancement du programme
-
-Aller sur 
-```bash
-main.py
-```
+Ce projet vise à tester, vérifier, améliorer et étendre les expériences de l'article de référence.
 
 ## Tâches
 
