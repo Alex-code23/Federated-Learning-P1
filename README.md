@@ -3,6 +3,10 @@
 ## Article
 
 [Mean Aggregator is More Robust than Robust Aggregators under Label Poisoning Attacks on Distributed Heterogeneous Data](https://arxiv.org/abs/2404.13647)
+
+## Overleaf
+
+https://www.overleaf.com/7776336468zwtkjqjgxkmb#b11253
  
 ### Résumé de l’article
 
