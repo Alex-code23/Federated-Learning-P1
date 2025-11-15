@@ -145,12 +145,12 @@ Ce projet vise à tester, vérifier, améliorer et étendre les expériences de 
 |--------------------------------------------------------------|:----------:|:---:|:-------:|:--------------:|:-------:|
 | Implémenter CNN                                              | ✅ |  |  |  | YES |
 | Organiser le code                                            | ✅ |  |  |  | YES |
-| Voir démos et lire en détail l'article et les arguments      |  | ✅ | ✅ |  |  |
+| Voir démos et lire en détail l'article et les arguments      |  | ✅ | ✅ |  | En cours|
 | Améliorer le plot                                            | ✅ |  |  |  | YES |
 | Ajouter la variance                                          | ✅ |  |  |  | YES |
 | Ajouter intervalles de confiance des valeurs                 | ✅ |  |  |  | YES |
 | Optimiser GPU et vectoriser le code                          | ✅ |  |  |  | En cours |
-| Apporter les grandes idées des théorèmes avec dessins        |  | ✅ | ✅ |  |  |
+| Apporter les grandes idées des théorèmes avec dessins        |  | ✅ | ✅ |  | En cours |
 | Explorer d'autres aggregators                                |  | ✅ |  |  |  |
 | Améliorer les stratégies d'attaques (byzantin)               | ✅ | ✅ |  |  | YES |
 | Tester théoriquement quand on change de modèles              |  |  |  | ✅ |  |
