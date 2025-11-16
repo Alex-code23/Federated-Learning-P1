@@ -52,7 +52,7 @@ def partition_noniid_by_class(dataset, W):
         parts[w] = np.array([], dtype=int)
     return parts
 
-def partition_niid_pathological(dataset, W, shards_per_worker=2):
+def partition_niid_pathological(dataset, W, shards_per_worker=4):
     """
     Cette méthode, inspirée par l'article original sur FedAvg (McMahan et al., 2017), 
     consiste à trier les données par classe, à les diviser en un certain nombre de "fragments" 
@@ -85,31 +85,32 @@ def partition_niid_pathological(dataset, W, shards_per_worker=2):
     return parts
 
 def partition_noniid_by_class_count(dataset, W, classes_per_worker=2):
-    """
-    Assigne un nombre fixe de classes (`classes_per_worker`) à chaque worker.
-    Les données de chaque classe sont réparties équitablement entre les workers qui la possèdent.
-    """
     targets = np.array(dataset.targets)
     K = targets.max() + 1
     
-    # 1. Obtenir les indices pour chaque classe
     class_indices = [np.where(targets == k)[0] for k in range(K)]
-    
-    # 2. Assigner les classes aux workers
-    worker_classes = [[] for _ in range(W)]
-    for k in range(K):
-        # Assigner la classe k à `classes_per_worker` workers choisis au hasard
-        selected_workers = np.random.choice(W, classes_per_worker, replace=False)
-        for w in selected_workers:
-            worker_classes[w].append(k)
 
-    # 3. Distribuer les indices de données
+    # ---- Stage 1: ensure each worker gets at least 1 class ----
+    worker_classes = [[] for _ in range(W)]
+    class_list = list(range(K))
+    np.random.shuffle(class_list)
+
+    # First give each worker 1 class
+    for w in range(W):
+        k = class_list[w % K]
+        worker_classes[w].append(k)
+
+    # ---- Stage 2: add random classes until each worker has classes_per_worker ----
+    for k in range(K):
+        while sum(k in wc for wc in worker_classes) < classes_per_worker:
+            w = np.random.randint(W)
+            if k not in worker_classes[w]:
+                worker_classes[w].append(k)
+
+    # ---- Stage 3: assign samples ----
     parts = [[] for _ in range(W)]
     for w in range(W):
         for k in worker_classes[w]:
-            # Pour simplifier, on donne tous les exemples de la classe k au worker w.
-            # Une version plus complexe pourrait diviser les données de la classe k entre les workers qui la partagent.
             parts[w].extend(class_indices[k])
-            
-    parts = [np.array(p, dtype=int) for p in parts]
-    return parts
+
+    return [np.array(p, dtype=int) for p in parts]

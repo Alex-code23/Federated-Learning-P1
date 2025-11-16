@@ -43,9 +43,9 @@ if __name__ == '__main__':
     # quick demo
     W = 10         # total workers
     R = 8         # regular (non-poisoned) workers
-    T = 400      # iterations (petit pour demo)
+    T = 1000      # iterations (petit pour demo)
 
-    partition_list = ['iid', 'noniid']
+    partition_list = ['iid', 'dirichlet', 'pathological', 'class_count','noniid']
     # one attack and one model
     ATTACK = 'static'
     MODEL = 'softmax'

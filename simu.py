@@ -54,7 +54,7 @@ def run_simulation(
     elif partition == 'noniid':
         parts = partition_noniid_by_class(dataset_train, W)
     elif partition == 'pathological': # Nouvelle option
-        parts = partition_niid_pathological(dataset_train, W, shards_per_worker=2)
+        parts = partition_niid_pathological(dataset_train, W, shards_per_worker=4)
     elif partition == 'class_count': # Nouvelle option
         parts = partition_noniid_by_class_count(dataset_train, W, classes_per_worker=2)
 
