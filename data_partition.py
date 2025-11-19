@@ -114,3 +114,65 @@ def partition_noniid_by_class_count(dataset, W, classes_per_worker=2):
             parts[w].extend(class_indices[k])
 
     return [np.array(p, dtype=int) for p in parts]
+
+
+if __name__ == '__main__':
+    # test all partitions on simple dataset
+    data = np.array([[i] for i in range(20000)])
+    class SimpleDataset:
+        def __init__(self, data):
+            self.data = data
+            self.targets = data.flatten() % 4  # 4 classes
+        def __len__(self):
+            return len(self.data)
+        
+    dataset = SimpleDataset(data)
+    W = 4
+
+    print("\n --- IID partition ---")
+    print("[Explanation] In IID partition, each worker gets equal and random samples from all classes.")
+    parts = partition_iid(dataset, W)
+    for w in range(W):
+        n = len(dataset.targets[parts[w]])
+        label_proportion = [round(float(np.sum(dataset.targets[parts[w]] == c)/n), 3) for c in range(4)]
+        print(f' Worker {w}:', len(parts[w]), ' Number for each labels:', label_proportion)
+
+    print("\n --- Dirichlet partition ---")
+    print("[Explanation] In Dirichlet partition, data is distributed based on Dirichlet distribution, leading to varying class distributions across workers.")
+    print( " Dirichlet alpha=0.3")
+    parts = partition_dirichlet(dataset, W, alpha=0.3)
+    for w in range(W):
+        n = len(dataset.targets[parts[w]])
+        label_proportion = [round(float(np.sum(dataset.targets[parts[w]] == c)/n), 3) for c in range(4)]
+        print(f' Worker {w}:', len(parts[w]), ' Number labels:', label_proportion)
+
+    print(" Dirichlet alpha=10.0")
+    parts = partition_dirichlet(dataset, W, alpha=10.0)
+    for w in range(W):
+        n = len(dataset.targets[parts[w]])
+        label_proportion = [round(float(np.sum(dataset.targets[parts[w]] == c)/n), 3) for c in range(4)]
+        print(f' Worker {w}:', len(parts[w]), ' Number labels:', label_proportion)
+
+    print("\n --- Non-IID by class partition ---")
+    print("[Explanation] In Non-IID by class partition, each worker is assigned data from only one class.")
+    parts = partition_noniid_by_class(dataset, W)
+    for w in range(W):
+        n = len(dataset.targets[parts[w]])
+        label_proportion = [round(float(np.sum(dataset.targets[parts[w]] == c)/n), 3) for c in range(4)]
+        print(f' Worker {w}:',  len(parts[w]), ' Number labels:', label_proportion)
+
+    print("\n --- Pathological Non-IID partition ---")
+    print("[Explanation] In Pathological Non-IID partition, each worker gets a small number of shards, each shard containing data from a single class, leading to highly skewed class distributions.")
+    parts = partition_niid_pathological(dataset, W, shards_per_worker=2)
+    for w in range(W):
+        n = len(dataset.targets[parts[w]])
+        label_proportion = [round(float(np.sum(dataset.targets[parts[w]] == c)/n), 3) for c in range(4)]
+        print(f' Worker {w}:', len(parts[w]), ' Number labels:', label_proportion)
+    
+    print("\n --- Non-IID by class count partition ---")
+    print("[Explanation] In Non-IID by class count partition, each worker is assigned a fixed number of classes, ensuring diversity while maintaining non-IID characteristics.")
+    parts = partition_noniid_by_class_count(dataset, W, classes_per_worker=2)
+    for w in range(W):
+        n = len(dataset.targets[parts[w]])
+        label_proportion = [round(float(np.sum(dataset.targets[parts[w]] == c)/n), 3) for c in range(4)]
+        print(f' Worker {w}:', len(parts[w]), ' Number labels:', label_proportion)

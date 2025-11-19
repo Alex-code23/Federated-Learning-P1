@@ -37,21 +37,32 @@ if __name__ == '__main__':
     from datetime import datetime
 
     transform = transforms.Compose([transforms.ToTensor()])
-    trainset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-    testset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+    DATASET = 'CIFAR-10'
+    if DATASET == 'MNIST':
+        trainset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+        testset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+    elif DATASET == 'Fashion-MNIST':
+        trainset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
+        testset = datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
+    elif DATASET == 'CIFAR-10':
+        trainset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+        testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+    else:
+        print('[ERROR] DATASET')
+        raise ValueError
 
     # quick demo
     W = 10         # total workers
     R = 8         # regular (non-poisoned) workers
-    T = 1000      # iterations (petit pour demo)
+    T = 400      # iterations (petit pour demo)
 
-    partition_list = ['iid', 'dirichlet', 'pathological', 'class_count','noniid']
+    partition_list = ['iid', 'dirichlet', 'pathological', 'noniid']
     # one attack and one model
     ATTACK = 'static'
     MODEL = 'softmax'
 
     # Number samples of simulations running
-    N = 10
+    N = 2
 
     # datetime H-J-M-Y
     now = datetime.now()
@@ -261,33 +272,33 @@ if __name__ == '__main__':
             plt.show()
 
     # Sauvegarde CSV consolidé avec moyenne et IC (ex: accuracy_mean, accuracy_ci)
-    FOLDER = f'data_results/{dt_string}/{MODEL}/'
+    FOLDER = f'data_results/{DATASET}/{dt_string}/{MODEL}/'
     if not os.path.exists(FOLDER):
         os.makedirs(FOLDER, exist_ok=True)
-    csv_file = os.path.join(FOLDER, f'{ATTACK}_aggregators_mean_ci.csv')
+    csv_file = os.path.join(FOLDER, f'{ATTACK}_aggregators_mean_ci_{DATASET}.csv')
     with open(csv_file, 'w') as f:
         # header
-        f.write('Model,Attack,Partition,Aggregator,Iteration,Metric,Mean,CI\n')
+        f.write('Dataset,Model,Attack,Partition,Aggregator,Iteration,Metric,Mean,CI\n')
         for PART in partition_list:
             for agg, metrics in results_mean[PART].items():
                 for metric_name, mean_vec in metrics.items():
                     ci_vec = results_ci[PART][agg][metric_name]
                     for t in range(len(mean_vec)):
-                        f.write(f"{MODEL},{ATTACK},{PART},{agg},{t},{metric_name},{mean_vec[t]},{ci_vec[t]}\n")
+                        f.write(f"{DATASET},{MODEL},{ATTACK},{PART},{agg},{t},{metric_name},{mean_vec[t]},{ci_vec[t]}\n")
     print(csv_file, 'saved.')
 
     # Tracer et sauvegarder figures
-    FOLDER_PLOT = f'plots/{dt_string}/{MODEL}/'
+    FOLDER_PLOT = f'plots/{DATASET}/{dt_string}/{MODEL}/'
     if not os.path.exists(FOLDER_PLOT):
         os.makedirs(FOLDER_PLOT, exist_ok=True)
 
     plot_mean_ci_partitions(results_mean, results_ci, partition_list,
-                            save_file=os.path.join(FOLDER_PLOT, f'{ATTACK}_aggregator_mean_ci_partitions.png'),
-                            title=f'Aggregator mean ± CI across partitions (MNIST, attack={ATTACK})',
+                            save_file=os.path.join(FOLDER_PLOT, f'{ATTACK}_aggregator_mean_ci_partitions_{DATASET}.png'),
+                            title=f'Aggregator mean ± CI across partitions ({DATASET}, attack={ATTACK})',
                             show_loss=True)
 
     plot_xi_A_partitions_mean_ci(results_mean, results_ci, partition_list,
-                                 save_file=os.path.join(FOLDER_PLOT, f'{ATTACK}_xi_A_variance_mean_ci_partitions.png'),
+                                 save_file=os.path.join(FOLDER_PLOT, f'{ATTACK}_xi_A_variance_mean_ci_partitions_{DATASET}.png'),
                                  title=f'xi, A and Variance mean ± CI ({ATTACK})')
 
 

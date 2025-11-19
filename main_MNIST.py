@@ -27,8 +27,19 @@ if __name__ == '__main__':
     from datetime import datetime
 
     transform = transforms.Compose([transforms.ToTensor()])
-    trainset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
-    testset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+    DATASET = 'MNIST'
+    if DATASET == 'MNIST':
+        trainset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
+        testset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
+    elif DATASET == 'Fashion-MNIST':
+        trainset = datasets.FashionMNIST(root='./data', train=True, download=True, transform=transform)
+        testset = datasets.FashionMNIST(root='./data', train=False, download=True, transform=transform)
+    elif DATASET == 'CIFAR-10':
+        trainset = datasets.CIFAR10(root='./data', train=True, download=True, transform=transform)
+        testset = datasets.CIFAR10(root='./data', train=False, download=True, transform=transform)
+    else:
+        print('[ERROR] DATASET')
+        raise ValueError
 
     # quick demo
     W = 10         # total workers
@@ -85,41 +96,40 @@ if __name__ == '__main__':
                 #     print('plot_xi_A skipped or failed:', e)
 
             # Après avoir collecté tous les résultats, tracer les comparaisons côte-à-côte
-            FOLDER_PLOT = f'plots/{dt_string}/{MODEL}/'
+            FOLDER_PLOT = f'plots/{DATASET}/{dt_string}/{MODEL}/'
             if not os.path.exists(FOLDER_PLOT):
                 os.makedirs(FOLDER_PLOT, exist_ok=True)
 
             plot_xi_A_partitions(
                 results_by_partition,
                 partition_list,
-                save_file=f'{FOLDER_PLOT}/{ATTACK}_xi_A_comparison_partitions.png',
+                save_file=f'{FOLDER_PLOT}/{ATTACK}_xi_A_comparison_partitions_{DATASET}.png',
                 title='xi, A and Variance comparison across partitions'
             )
 
             plot_partitions_aggregators(
                 results_by_partition,
                 partition_list,
-                save_file=f'{FOLDER_PLOT}/{ATTACK}_aggregator_comparison_partitions_mnist.png',
-                title=f'Aggregator comparison across partitions (MNIST, attack={ATTACK})',
+                save_file=f'{FOLDER_PLOT}/{ATTACK}_aggregator_comparison_partitions_{DATASET}.png',
+                title=f'Aggregator comparison across partitions ({DATASET}, attack={ATTACK})',
                 show_loss=True  # mettre False si tu veux uniquement l'accuracy
             )
 
             # Save results as csv (un seul fichier consolidé)
-            FOLDER = f'data_results/{dt_string}/{MODEL}/'
+            FOLDER = f'data_results/{DATASET}/{dt_string}/{MODEL}/'
             if not os.path.exists(FOLDER):
                 os.makedirs(FOLDER, exist_ok=True)
-            filename = f'{FOLDER}/{ATTACK}_all_partitions_mnist_agg_results.csv'
+            filename = f'{FOLDER}/{ATTACK}_all_partitions_{DATASET}_agg_results.csv'
             with open(filename, 'w') as f:
-                f.write('Model,Attack,Partition,Aggregator,Iteration,TestAccuracy,TestLoss,Variance,xi,A\n')
+                f.write('Dataset,Model,Attack,Partition,Aggregator,Iteration,TestAccuracy,TestLoss,Variance,xi,A\n')
                 for PARTITION, part_results in results_by_partition.items():
                     for agg, stats in part_results.items():
                         n = len(stats['accs'])
                         for t in range(n):
                             xi_t = stats['xi'][t] if 'xi' in stats and t < len(stats['xi']) else ''
                             A_t = stats['A'][t] if 'A' in stats and t < len(stats['A']) else ''
-                            f.write(f"{MODEL},{ATTACK},{PARTITION},{agg},{t},{stats['accs'][t]},{stats['losses'][t]},{stats['variance'][t]},{xi_t},{A_t}\n")
+                            f.write(f"{DATASET},{MODEL},{ATTACK},{PARTITION},{agg},{t},{stats['accs'][t]},{stats['losses'][t]},{stats['variance'][t]},{xi_t},{A_t}\n")
             print(filename, 'saved.')
 
             print('\n\n End of attack type:', ATTACK)
-
     print('Done.')

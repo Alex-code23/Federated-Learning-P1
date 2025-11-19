@@ -1,0 +1,7 @@
+# Ignorer les données téléchargées
+data/
+data/**
+
+# (Optionnel) ignorer aussi les fichiers temporaires de PyTorch/torchvision
+*.pt
+*.pth

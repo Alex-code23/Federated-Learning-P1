@@ -69,10 +69,12 @@ def run_simulation(
         workers.append(Worker(parts[w], dataset_train, device=device, poisoned=poisoned_flag, attack_type=attack_type, flip_prob=flip_prob, batch_size=local_batch))
 
     # create model
+    # get input dim and flatten
+    input_dim = dataset_train[0][0].numel()
     if model_type == 'softmax':
-        model = SoftmaxModel().to(device)
+        model = SoftmaxModel(input_dim=input_dim).to(device)
     elif model_type == 'mlp':
-        model = TwoLayerMLP().to(device)
+        model = TwoLayerMLP(input_dim=input_dim).to(device)
     elif model_type == 'cnn':
         model = CNNModel().to(device)
     else:
@@ -158,15 +160,20 @@ def run_simulation(
         # compute heterogeneity xi and disturbance A
         # For metrics, we can move to CPU/numpy, as this is not part of the core training loop timing
         msgs_np = msgs_tensor.cpu().numpy()
-        all_grads_np = np.vstack((grads_regular_np, grads_poisoned_np)) if len(grads_regular) > 0 else grads_poisoned_np
+
+        grads_poisoned_np = torch.stack(grads_poisoned).cpu().numpy() if len(grads_poisoned) > 0 else np.array([])
+        grads_regular_np = torch.stack(grads_regular).cpu().numpy() if len(grads_regular) > 0 else np.array([])
+        all_grads_np = np.vstack((grads_regular_np, grads_poisoned_np)) if (len(grads_regular) > 0 and len(grads_poisoned) > 0) else (grads_regular_np if len(grads_poisoned) == 0 else grads_poisoned_np)
         if len(grads_regular) > 0:
-            grads_regular_np = torch.stack(grads_regular).cpu().numpy()
+            # grads_regular_np = torch.stack(grads_regular).cpu().numpy()
+            # all_grads_np = np.vstack((grads_regular_np, grads_poisoned_np)) if len(grads_regular) > 0 else grads_poisoned_np
             ybar = np.mean(all_grads_np, axis=0)
             xi_val = max(np.linalg.norm(g - ybar) for g in grads_regular_np)
         else:
             xi_val = 0.0
         if len(grads_poisoned) > 0:
-            grads_poisoned_np = torch.stack(grads_poisoned).cpu().numpy()
+            # grads_poisoned_np = torch.stack(grads_poisoned).cpu().numpy()
+            # all_grads_np = np.vstack((grads_regular_np, grads_poisoned_np)) if len(grads_regular) > 0 else grads_poisoned_np
             A_val = max(np.linalg.norm(g - np.mean(all_grads_np, axis=0)) for g in grads_poisoned_np)
         else:
             A_val = 0.0
