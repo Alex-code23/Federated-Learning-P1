@@ -1,19 +1,5 @@
-#!/usr/bin/env python3
 """
-partition_analysis.py
-
-Analyse des partitions "client-level" (federated).
-- Input formats supported:
-  * LEAF .npz or .json format (keys: "users", "user_data" or similar)
-  * CSV with at least columns: client_id,label  (one row per exemple)
-  * Directory structure:
-      - class_dir/<class_label>/<files...> where filenames start with clientID_...
-      - or client_dir/<client_id>/<files...> (labels unknown in that case)
-- Output:
-  * DataFrame summary (per-client): num_samples, num_classes_local, entropy_bits, js_divergence, top_class_fractions
-  * Heatmap client x class (saved)
-  * Entropy boxplot (saved)
-- Usage examples:
+Exemples:
     python3 partition_analysis.py --input path/to/data.npz --format leaf --outdir ./outputs
     python3 partition_analysis.py --input clients.csv --format csv --outdir ./outputs
     python3 partition_analysis.py --input /path/to/clients_folder --format folder --outdir ./outputs
