@@ -52,4 +52,19 @@ plt.title("PCA des textes AG News par classe")
 plt.xlabel("PC1")
 plt.ylabel("PC2")
 plt.savefig("visualisations/AG_News/AG_News_data_visualisation.png")
+
+class_counts = [0,0,0,0]
+for item in dataset["train"]:
+    label = item['label']  # accéder correctement à la clé 'label'
+    class_counts[label] += 1
+
+# 4. Tracer l'histogramme
+plt.figure(figsize=(8,6))
+plt.bar([label_names[i] for i in range(4)], class_counts, color=['red','blue','green','orange'])
+plt.xlabel("Classes")
+plt.ylabel("Nombre d'exemples")
+plt.title("Distribution des classes dans AG News")
+plt.savefig("visualisations/AG_News/AG_News_data_histogramme.png")
+
+
 plt.show()
