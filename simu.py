@@ -30,8 +30,8 @@ torch.manual_seed(SEED)
 def run_simulation(
     dataset_train,
     dataset_test,
-    W=10,
-    R=9,
+    W,
+    R,
     aggregator_name='Mean',
     partition='iid',
     dirichlet_alpha=1.0,
@@ -91,6 +91,14 @@ def run_simulation(
     accs = []
     losses = []
     variance = []
+    # Store per-class accuracies
+    if hasattr(dataset_test, 'classes'):
+        num_classes = len(dataset_test.classes)
+    else: # For MNIST which doesn't have .classes attribute
+        num_classes = 10
+    
+    per_class_accs = [[] for _ in range(num_classes)]
+
     heterogeneity_xi = []
     disturbance_A = []
 
@@ -197,6 +205,9 @@ def run_simulation(
         if t % 10 == 0 or t == T - 1:
             model.eval()
             correct, total, total_loss = 0, 0, 0.0
+            class_correct = list(0. for i in range(num_classes))
+            class_total = list(0. for i in range(num_classes))
+
             with torch.no_grad():
                 for xb, yb in test_loader:
                     xb, yb = xb.to(device), yb.to(device)
@@ -206,11 +217,27 @@ def run_simulation(
                     preds = logits.argmax(dim=1)
                     correct += (preds == yb).sum().item()
                     total += xb.size(0)
+
+                    # Per-class accuracy
+                    c = (preds == yb).squeeze()
+                    for i in range(yb.size(0)):
+                        label = yb[i]
+                        if label < num_classes:
+                            class_correct[label] += c[i].item()
+                            class_total[label] += 1
+
             accs.append(correct / total)
             losses.append(total_loss / total)
+            for i in range(num_classes):
+                if class_total[i] > 0:
+                    per_class_accs[i].append(class_correct[i] / class_total[i])
+                else:
+                    per_class_accs[i].append(0.0)
         else: # if not evaluating, append previous value to keep lists aligned
             if accs: accs.append(accs[-1])
             if losses: losses.append(losses[-1])
+            for i in range(num_classes):
+                if per_class_accs[i]: per_class_accs[i].append(per_class_accs[i][-1])
 
         variance.append(np.var(msgs_np, axis=0).mean())
 
@@ -221,6 +248,7 @@ def run_simulation(
         'accs': accs,
         'losses': losses,
         'variance': variance,
+        'per_class_accs': per_class_accs,
         'xi': heterogeneity_xi,
         'A': disturbance_A
     }

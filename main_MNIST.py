@@ -7,7 +7,7 @@ from torchvision import datasets, transforms
 
 
 
-from plot import plot_partitions_aggregators, plot_xi_A_partitions
+from plot import plot_partitions_aggregators, plot_xi_A_partitions, plot_class_accuracy_evolution
 from simu import run_simulation
 
 # Device configuration
@@ -113,6 +113,13 @@ if __name__ == '__main__':
                 save_file=f'{FOLDER_PLOT}/{ATTACK}_aggregator_comparison_partitions_{DATASET}.png',
                 title=f'Aggregator comparison across partitions ({DATASET}, attack={ATTACK})',
                 show_loss=True  # mettre False si tu veux uniquement l'accuracy
+            )
+
+            plot_class_accuracy_evolution(
+                results_by_partition,
+                partition_list,
+                save_file=f'{FOLDER_PLOT}/{ATTACK}_class_accuracy_evolution_{DATASET}.png',
+                title=f'Class Accuracy Evolution ({DATASET}, attack={ATTACK})'
             )
 
             # Save results as csv (un seul fichier consolidé)

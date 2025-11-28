@@ -10,6 +10,10 @@ from torchvision import datasets, transforms
 
 from aggregators import agg_mean, agg_trimmed_mean, agg_coord_median, agg_centered_clipping, agg_faba_simple, agg_lfighter_simple
 from simu import run_simulation
+from plot import plot_class_accuracy_evolution, plot_mean_ci_partitions, plot_xi_A_partitions_mean_ci, plot_partitions_aggregators, plot_xi_A_partitions
+
+
+
 
 # Device configuration
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -25,7 +29,7 @@ AGGREGATORS = {
     # 'CoordMedian': agg_coord_median,
     'CC': lambda m: agg_centered_clipping(m, clip_threshold=1.0),
     'FABA': lambda m: agg_faba_simple(m, remove_frac=0.1),
-    'LFighter': lambda m: agg_lfighter_simple(m, n_clusters=2)
+    # 'LFighter': lambda m: agg_lfighter_simple(m, n_clusters=2)
 }
 
 # ---------------------- Simulation engine ----------------------
@@ -37,7 +41,7 @@ if __name__ == '__main__':
     from datetime import datetime
 
     transform = transforms.Compose([transforms.ToTensor()])
-    DATASET = 'CIFAR-10'
+    DATASET = 'MNIST'
     if DATASET == 'MNIST':
         trainset = datasets.MNIST(root='./data', train=True, download=True, transform=transform)
         testset = datasets.MNIST(root='./data', train=False, download=True, transform=transform)
@@ -53,16 +57,16 @@ if __name__ == '__main__':
 
     # quick demo
     W = 10         # total workers
-    R = 8         # regular (non-poisoned) workers
-    T = 400      # iterations (petit pour demo)
+    R = 6         # regular (non-poisoned) workers
+    T = 200           # iterations (petit pour demo)
 
-    partition_list = ['iid', 'dirichlet', 'pathological', 'noniid']
+    partition_list = ['dirichlet','noniid'] # 'iid', 'dirichlet',
     # one attack and one model
     ATTACK = 'static'
     MODEL = 'softmax'
 
     # Number samples of simulations running
-    N = 2
+    N = 1
 
     # datetime H-J-M-Y
     now = datetime.now()
@@ -83,9 +87,8 @@ if __name__ == '__main__':
         return mean, ci
 
     # structures pour accumuler tous les résultats
-    results_all = {PART: {agg: {'accs': [], 'losses': [], 'xi': [], 'A': [], 'variance': []}
-                          for agg in AGGREGATORS.keys()}
-                   for PART in partition_list}
+    results_all = {PART: {agg: {'accs': [], 'losses': [], 'xi': [], 'A': [], 'variance': [], 'per_class_accs': []}
+                          for agg in AGGREGATORS.keys()} for PART in partition_list}
 
     # boucle de N simulations (accumulation)
     for k in range(N):
@@ -103,7 +106,7 @@ if __name__ == '__main__':
                     aggregator_name=agg,
                     partition=PARTITION,
                     attack_type=ATTACK,
-                    flip_prob=0.8,
+                    flip_prob=0.5,
                     model_type=MODEL,
                     T=T,
                     local_batch=64,
@@ -120,6 +123,10 @@ if __name__ == '__main__':
                 results_all[PARTITION][agg]['xi'].append(np.array(stats['xi']))
                 results_all[PARTITION][agg]['A'].append(np.array(stats['A']))
                 results_all[PARTITION][agg]['variance'].append(np.array(stats['variance']))
+                
+                # Store per_class_accs. Each element in stats['per_class_accs'] is a list for one class.
+                # We convert these inner lists to numpy arrays for consistency.
+                results_all[PARTITION][agg]['per_class_accs'].append([np.array(class_acc_list) for class_acc_list in stats['per_class_accs']])
 
             results_by_partition[PARTITION] = results
 
@@ -137,154 +144,66 @@ if __name__ == '__main__':
                 # vérifier que l'on a au moins un run
                 if len(list_of_arrays) == 0:
                     continue
-                # s'assurer que toutes les longueurs sont identiques
-                lengths = [a.shape[0] for a in list_of_arrays]
-                if len(set(lengths)) != 1:
-                    # si mismatch (rare), tronquer à la longueur min
-                    min_len = min(lengths)
-                    list_of_arrays = [a[:min_len] for a in list_of_arrays]
-                mean_vec, ci_vec = mean_and_ci(list_of_arrays, ci_factor=1.96)
-                results_mean[PART][agg][metric_name] = mean_vec
-                results_ci[PART][agg][metric_name] = ci_vec
-
-    # fonctions de tracé avec bande d'incertitude
-    def plot_mean_ci_partitions(results_mean, results_ci, partition_list, save_file=None, title=None, show_loss=True):
-        n_part = len(partition_list)
-        n_rows = 2 if show_loss else 1
-        fig, axes = plt.subplots(n_rows, n_part, figsize=(5*n_part, 4*n_rows), squeeze=False)
-
-        for col, PART in enumerate(partition_list):
-            # Accuracy
-            ax_acc = axes[0][col]
-            acc_sup, acc_inf = 0,0
-            for agg, stats_mean in results_mean[PART].items():
-                if 'accs' not in stats_mean:
-                    continue
-                mean = stats_mean['accs']
-                ci = results_ci[PART][agg]['accs']
-                x = np.arange(len(mean))
-                ax_acc.plot(x, mean, label=agg)
-                ax_acc.fill_between(x, mean - ci, mean + ci, alpha=0.2)
-                acc_sup = max(acc_sup, np.max(mean + ci))
-                acc_inf = min(acc_inf, np.min(mean - ci))
-            ax_acc.set_xlabel('Communication rounds')
-            ax_acc.set_ylabel('Test accuracy')
-            ax_acc.set_title(f'Accuracy — {PART}')
-            ax_acc.set_ylim(acc_sup - acc_sup * 0.3 , acc_sup)
-            ax_acc.grid(True)
-            if col == 0:
-                ax_acc.legend(loc='lower right', fontsize='small')
-
-            # Loss
-            if show_loss:
-                ax_loss = axes[1][col]
-                for agg, stats_mean in results_mean[PART].items():
-                    if 'losses' not in stats_mean:
-                        continue
-                    mean = stats_mean['losses']
-                    ci = results_ci[PART][agg]['losses']
-                    x = np.arange(len(mean))
-                    ax_loss.plot(x, mean, label=agg)
-                    ax_loss.fill_between(x, mean - ci, mean + ci, alpha=0.2)
-                ax_loss.set_xlabel('Communication rounds')
-                ax_loss.set_ylabel('Test loss')
-                ax_loss.set_title(f'Loss — {PART}')
-                ax_loss.grid(True)
-                if col == 0:
-                    ax_loss.legend(loc='upper right', fontsize='small')
-
-        plt.suptitle(title or '')
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        if save_file:
-            folder = os.path.dirname(save_file)
-            if folder and not os.path.exists(folder):
-                os.makedirs(folder, exist_ok=True)
-            plt.savefig(save_file)
-            plt.close(fig)
-        else:
-            plt.show()
-
-    def plot_xi_A_partitions_mean_ci(results_mean, results_ci, partition_list, save_file=None, title=None):
-        n_part = len(partition_list)
-        fig, axes = plt.subplots(3, n_part, figsize=(5*n_part, 12), squeeze=False)
-
-        for col, PART in enumerate(partition_list):
-            # xi
-            ax_xi = axes[0][col]
-            for agg, stats_mean in results_mean[PART].items():
-                if 'xi' not in stats_mean:
-                    continue
-                mean = stats_mean['xi']
-                ci = results_ci[PART][agg]['xi']
-                x = np.arange(len(mean))
-                ax_xi.plot(x, mean, label=agg)
-                ax_xi.fill_between(x, mean - ci, mean + ci, alpha=0.2)
-            ax_xi.set_title(f'Heterogeneity (xi) — {PART}')
-            ax_xi.set_xlabel('Rounds')
-            ax_xi.set_ylabel('xi')
-            ax_xi.grid(True)
-            if col == 0:
-                ax_xi.legend(loc='upper right', fontsize='small')
-
-            # A
-            ax_A = axes[1][col]
-            for agg, stats_mean in results_mean[PART].items():
-                if 'A' not in stats_mean:
-                    continue
-                mean = stats_mean['A']
-                ci = results_ci[PART][agg]['A']
-                x = np.arange(len(mean))
-                ax_A.plot(x, mean, label=agg)
-                ax_A.fill_between(x, mean - ci, mean + ci, alpha=0.2)
-            ax_A.set_title(f'Disturbance (A) — {PART}')
-            ax_A.set_xlabel('Rounds')
-            ax_A.set_ylabel('A')
-            ax_A.grid(True)
-            if col == 0:
-                ax_A.legend(loc='upper right', fontsize='small')
-
-            # variance
-            ax_var = axes[2][col]
-            for agg, stats_mean in results_mean[PART].items():
-                if 'variance' not in stats_mean:
-                    continue
-                mean = stats_mean['variance']
-                ci = results_ci[PART][agg]['variance']
-                x = np.arange(len(mean))
-                ax_var.plot(x, mean, label=agg)
-                ax_var.fill_between(x, mean - ci, mean + ci, alpha=0.2)
-            ax_var.set_title(f'Variance of messages — {PART}')
-            ax_var.set_xlabel('Rounds')
-            ax_var.set_ylabel('Variance')
-            ax_var.grid(True)
-            if col == 0:
-                ax_var.legend(loc='upper right', fontsize='small')
-
-        plt.suptitle(title or 'Comparison of xi, A and Variance across partitions (mean ± CI)')
-        plt.tight_layout(rect=[0, 0.03, 1, 0.95])
-        if save_file:
-            folder = os.path.dirname(save_file)
-            if folder and not os.path.exists(folder):
-                os.makedirs(folder, exist_ok=True)
-            plt.savefig(save_file)
-            plt.close(fig)
-        else:
-            plt.show()
+                
+                if metric_name == 'per_class_accs':
+                    # list_of_arrays is like [ [c0_r1, c1_r1], [c0_r2, c1_r2] ]
+                    # We need to transform it to [ [c0_r1, c0_r2], [c1_r1, c1_r2] ] for mean_and_ci
+                    
+                    if not list_of_arrays or not list_of_arrays[0]:
+                        continue # Skip if no data or no classes in the first run
+                    
+                    num_classes = len(list_of_arrays[0])
+                    
+                    mean_per_class = []
+                    ci_per_class = []
+                    for class_idx in range(num_classes):
+                        # Extract all runs' data for this specific class
+                        class_j_accs_across_runs = [run_k_per_class_accs[class_idx] for run_k_per_class_accs in list_of_arrays]
+                        
+                        # Ensure all arrays for this class have the same length
+                        lengths = [a.shape[0] for a in class_j_accs_across_runs]
+                        if len(set(lengths)) != 1:
+                            min_len = min(lengths)
+                            class_j_accs_across_runs = [a[:min_len] for a in class_j_accs_across_runs]
+                        
+                        mean_vec_j, ci_vec_j = mean_and_ci(class_j_accs_across_runs, ci_factor=1.96)
+                        mean_per_class.append(mean_vec_j)
+                        ci_per_class.append(ci_vec_j)
+                    
+                    results_mean[PART][agg][metric_name] = mean_per_class
+                    results_ci[PART][agg][metric_name] = ci_per_class
+                else:
+                    # For other metrics (accs, losses, xi, A, variance)
+                    # s'assurer que toutes les longueurs sont identiques
+                    lengths = [a.shape[0] for a in list_of_arrays]
+                    if len(set(lengths)) != 1:
+                        min_len = min(lengths)
+                        list_of_arrays = [a[:min_len] for a in list_of_arrays]
+                    mean_vec, ci_vec = mean_and_ci(list_of_arrays, ci_factor=1.96)
+                    results_mean[PART][agg][metric_name] = mean_vec
+                    results_ci[PART][agg][metric_name] = ci_vec
 
     # Sauvegarde CSV consolidé avec moyenne et IC (ex: accuracy_mean, accuracy_ci)
     FOLDER = f'data_results/{DATASET}/{dt_string}/{MODEL}/'
     if not os.path.exists(FOLDER):
         os.makedirs(FOLDER, exist_ok=True)
     csv_file = os.path.join(FOLDER, f'{ATTACK}_aggregators_mean_ci_{DATASET}.csv')
-    with open(csv_file, 'w') as f:
-        # header
-        f.write('Dataset,Model,Attack,Partition,Aggregator,Iteration,Metric,Mean,CI\n')
+    with open(csv_file, 'w') as f: # Changed to 'w' to overwrite if exists
+        f.write('Dataset,Model,Attack,Partition,Aggregator,Iteration,Metric,Mean,CI\n') # Header
         for PART in partition_list:
-            for agg, metrics in results_mean[PART].items():
-                for metric_name, mean_vec in metrics.items():
-                    ci_vec = results_ci[PART][agg][metric_name]
-                    for t in range(len(mean_vec)):
-                        f.write(f"{DATASET},{MODEL},{ATTACK},{PART},{agg},{t},{metric_name},{mean_vec[t]},{ci_vec[t]}\n")
+            for agg, metrics_mean in results_mean[PART].items():
+                metrics_ci = results_ci[PART][agg]
+                for metric_name, mean_data in metrics_mean.items():
+                    ci_data = metrics_ci[metric_name]
+                    if metric_name == 'per_class_accs':
+                        # mean_data is a list of 1D arrays (one per class)
+                        for class_idx, (class_mean_vec, class_ci_vec) in enumerate(zip(mean_data, ci_data)):
+                            for t in range(len(class_mean_vec)):
+                                f.write(f"{DATASET},{MODEL},{ATTACK},{PART},{agg},{t},{metric_name}_class_{class_idx},{class_mean_vec[t]},{class_ci_vec[t]}\n")
+                    else:
+                        # mean_data is a 1D array
+                        for t in range(len(mean_data)):
+                            f.write(f"{DATASET},{MODEL},{ATTACK},{PART},{agg},{t},{metric_name},{mean_data[t]},{ci_data[t]}\n")
     print(csv_file, 'saved.')
 
     # Tracer et sauvegarder figures
@@ -292,14 +211,40 @@ if __name__ == '__main__':
     if not os.path.exists(FOLDER_PLOT):
         os.makedirs(FOLDER_PLOT, exist_ok=True)
 
-    plot_mean_ci_partitions(results_mean, results_ci, partition_list,
-                            save_file=os.path.join(FOLDER_PLOT, f'{ATTACK}_aggregator_mean_ci_partitions_{DATASET}.png'),
-                            title=f'Aggregator mean ± CI across partitions ({DATASET}, attack={ATTACK})',
-                            show_loss=True)
+    # Plot class accuracy evolution
+    plot_class_accuracy_evolution(
+        results_mean, # Pass results_mean as it contains the averaged per_class_accs
+        partition_list,
+        save_file=os.path.join(FOLDER_PLOT, f'{ATTACK}_class_accuracy_evolution_mean_{DATASET}.png'),
+        title=f'Class Accuracy Evolution (Mean over {N} runs) ({DATASET}, attack={ATTACK})',
+        dataset_name=DATASET
+    )
 
-    plot_xi_A_partitions_mean_ci(results_mean, results_ci, partition_list,
-                                 save_file=os.path.join(FOLDER_PLOT, f'{ATTACK}_xi_A_variance_mean_ci_partitions_{DATASET}.png'),
-                                 title=f'xi, A and Variance mean ± CI ({ATTACK})')
+    if N > 1:
+
+
+        plot_mean_ci_partitions(results_mean, results_ci, partition_list,
+                                save_file=os.path.join(FOLDER_PLOT, f'{ATTACK}_aggregator_mean_ci_partitions_{DATASET}.png'),
+                                title=f'Aggregator mean ± CI across partitions ({DATASET}, attack={ATTACK})',
+                                show_loss=True)
+
+        plot_xi_A_partitions_mean_ci(results_mean, results_ci, partition_list,
+                                    save_file=os.path.join(FOLDER_PLOT, f'{ATTACK}_xi_A_variance_mean_ci_partitions_{DATASET}.png'),
+                                    title=f'xi, A and Variance mean ± CI ({ATTACK})')
+        
+    else:
+        plot_xi_A_partitions(results_by_partition, partition_list,
+                            save_file=os.path.join(FOLDER_PLOT, f'{ATTACK}_xi_A_partitions_{DATASET}.png'),
+                            title=f'xi, A and Variance across partitions ({DATASET}, attack={ATTACK})')
+        
+        plot_partitions_aggregators(results_by_partition, partition_list,
+                                    save_file=os.path.join(FOLDER_PLOT, f'{ATTACK}_aggregator_comparison_partitions_{DATASET}.png'),
+                                    title=f'Aggregator comparison across partitions ({DATASET}, attack={ATTACK})',
+                                    show_loss=True)
+
+
+
+
 
 
 
