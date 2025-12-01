@@ -58,7 +58,7 @@ if __name__ == '__main__':
     # quick demo
     W = 10         # total workers
     R = 6         # regular (non-poisoned) workers
-    T = 200           # iterations (petit pour demo)
+    T = 2           # iterations (petit pour demo)
 
     partition_list = ['dirichlet','noniid'] # 'iid', 'dirichlet',
     # one attack and one model

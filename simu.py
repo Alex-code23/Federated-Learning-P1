@@ -40,6 +40,7 @@ def run_simulation(
     poison_frac=1.0, # fraction of samples at poisoned worker to flip (static) or placeholder
     model_type='softmax',
     T=200, # communication rounds
+    num_classes=10, # Ajout du paramètre
     model_factory=None, # Pour les modèles complexes comme en NLP
     collate_fn=None, # Pour le dataloader de test en NLP
     local_batch=32,
@@ -68,7 +69,9 @@ def run_simulation(
     workers = []
     for w in range(W):
         poisoned_flag = (w in poisoned_workers)
-        workers.append(Worker(parts[w], dataset_train, device=device, poisoned=poisoned_flag, attack_type=attack_type, flip_prob=flip_prob, batch_size=local_batch))
+        # Only create a worker if it has data samples assigned to it
+        if len(parts[w]) > 0:
+            workers.append(Worker(parts[w], dataset_train, device=device, poisoned=poisoned_flag, attack_type=attack_type, flip_prob=flip_prob, batch_size=local_batch))
 
     # create model
     # get input dim and flatten
@@ -97,11 +100,6 @@ def run_simulation(
     losses = []
     variance = []
     # Store per-class accuracies
-    if hasattr(dataset_test, 'classes'):
-        num_classes = len(dataset_test.classes)
-    else: # For MNIST which doesn't have .classes attribute
-        num_classes = 10
-    
     per_class_accs = [[] for _ in range(num_classes)]
 
     heterogeneity_xi = []
@@ -239,7 +237,7 @@ def run_simulation(
                     total_loss += loss_val * xb.size(0)
                     preds = logits.argmax(dim=1)
                     correct += (preds == yb).sum().item()
-                    total += xb.size(0)
+                    total += yb.size(0) # Utiliser yb.size(0) est plus sûr
 
                     # Per-class accuracy
                     c = (preds == yb).squeeze()

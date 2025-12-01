@@ -1,7 +1,20 @@
 import numpy as np
-
+import torch
+from torch.utils.data import TensorDataset
 
 # ---------------------- Data partition ----------------------
+
+def _get_targets(dataset):
+    """Helper function to get targets from torchvision dataset or TensorDataset."""
+    if isinstance(dataset, TensorDataset):
+        # For TensorDataset, the second tensor is usually the targets
+        return dataset.tensors[1].cpu().numpy()
+    elif hasattr(dataset, 'targets'):
+        targets = dataset.targets
+        if isinstance(targets, torch.Tensor):
+            return targets.cpu().numpy()
+        return np.array(targets)
+    raise AttributeError("Dataset does not have a 'targets' attribute or is not a TensorDataset.")
 
 def partition_iid(dataset, W):
     n = len(dataset)
@@ -12,8 +25,8 @@ def partition_iid(dataset, W):
 
 def partition_dirichlet(dataset, W, alpha=1.0):
     # Dataset targets assumed available as dataset.targets
-    targets = np.array(dataset.targets)
-    K = targets.max() + 1
+    targets = _get_targets(dataset)
+    K = int(targets.max()) + 1
     n = len(dataset)
     # sample proportions for each worker from Dirichlet for each class
     class_idx = [np.where(targets == k)[0] for k in range(K)]
@@ -41,15 +54,19 @@ def partition_dirichlet(dataset, W, alpha=1.0):
 
 def partition_noniid_by_class(dataset, W):
     # assign each class to one worker (paper: non-iid case)
-    targets = np.array(dataset.targets)
-    K = targets.max() + 1
-    assert K <= W, "Need W >= num classes for pure class per worker partition"
+    # MODIFIED: Distributes classes cyclically to workers.
+    targets = _get_targets(dataset)
+    K = int(targets.max()) + 1
+    
     parts = [[] for _ in range(W)]
+    class_indices = [np.where(targets == k)[0] for k in range(K)]
+
     for k in range(K):
-        idx = np.where(targets == k)[0]
-        parts[k] = idx
-    for w in range(K, W):
-        parts[w] = np.array([], dtype=int)
+        # Assign class k to worker k % W
+        worker_idx = k % W
+        parts[worker_idx].extend(class_indices[k])
+
+    parts = [np.array(p, dtype=int) for p in parts]
     return parts
 
 def partition_niid_pathological(dataset, W, shards_per_worker=4):
@@ -58,9 +75,9 @@ def partition_niid_pathological(dataset, W, shards_per_worker=4):
     consiste à trier les données par classe, à les diviser en un certain nombre de "fragments" 
     (shards), puis à distribuer un petit nombre de ces fragments à chaque client. Le résultat 
     est que chaque client ne dispose que d'un nombre très limité de classes (par exemple, 2 
-    pour MNIST).
+    pour MNIST). 
     """
-    targets = np.array(dataset.targets)
+    targets = _get_targets(dataset)
     n = len(dataset)
     
     # 1. Trier les indices de données par label
@@ -85,8 +102,8 @@ def partition_niid_pathological(dataset, W, shards_per_worker=4):
     return parts
 
 def partition_noniid_by_class_count(dataset, W, classes_per_worker=2):
-    targets = np.array(dataset.targets)
-    K = targets.max() + 1
+    targets = _get_targets(dataset)
+    K = int(targets.max()) + 1
     
     class_indices = [np.where(targets == k)[0] for k in range(K)]
 
