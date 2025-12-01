@@ -20,16 +20,19 @@ class Worker:
         
         # Use a Subset and DataLoader for efficient batch sampling
         subset = Subset(dataset, self.samples)
-        self.loader = DataLoader(subset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=True)
+        # La collate_fn sera définie dans le script principal pour le NLP
+        collate_fn = getattr(dataset, 'collate_fn', None)
+        self.loader = DataLoader(subset, batch_size=batch_size, shuffle=True, num_workers=0, pin_memory=False, collate_fn=collate_fn)
         self.loader_iter = iter(self.loader)
 
     def sample_batch(self):
         try:
-            x, y = next(self.loader_iter)
+            # Peut retourner plus de 2 éléments (ex: texte, offsets, label)
+            batch = next(self.loader_iter)
         except StopIteration:
             self.loader_iter = iter(self.loader)
-            x, y = next(self.loader_iter)
-        return x, y
+            batch = next(self.loader_iter)
+        return batch
 
     def local_gradient(self, model: nn.Module, loss_fn, x_batch, y_batch, momentum_state=None, alpha=0.1):
         # compute gradient of loss on this batch and return momentum vector as message
@@ -81,6 +84,10 @@ class Worker:
             scaler.unscale_(torch.optim.Optimizer(model.parameters(), []))  # dummy optimizer for unscale
             # now grads are in param.grad (unscaled) after scaler.step in normal flow; careful but we can extract grads using scaler.get_scale()
             # Simpler: skip scaler for now unless fully integrating optimizer
+        elif isinstance(x_batch, tuple): # Gérer le cas NLP (texte, offsets)
+            logits = model(x_batch[0], x_batch[1])
+            loss = loss_fn(logits, y_batch)
+            loss.backward()
         else:
             logits = model(x_batch)
             loss = loss_fn(logits, y_batch)

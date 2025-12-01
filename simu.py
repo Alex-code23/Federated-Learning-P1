@@ -40,6 +40,8 @@ def run_simulation(
     poison_frac=1.0, # fraction of samples at poisoned worker to flip (static) or placeholder
     model_type='softmax',
     T=200, # communication rounds
+    model_factory=None, # Pour les modèles complexes comme en NLP
+    collate_fn=None, # Pour le dataloader de test en NLP
     local_batch=32,
     gamma=0.01,
     alpha=0.1,
@@ -70,13 +72,16 @@ def run_simulation(
 
     # create model
     # get input dim and flatten
-    input_dim = dataset_train[0][0].numel()
-    if model_type == 'softmax':
-        model = SoftmaxModel(input_dim=input_dim).to(device)
-    elif model_type == 'mlp':
-        model = TwoLayerMLP(input_dim=input_dim).to(device)
-    elif model_type == 'cnn':
-        model = CNNModel().to(device)
+    if model_factory:
+        model = model_factory().to(device)
+    elif model_type in ['softmax', 'mlp', 'cnn']:
+        input_dim = dataset_train[0][0].numel()
+        if model_type == 'softmax':
+            model = SoftmaxModel(input_dim=input_dim).to(device)
+        elif model_type == 'mlp':
+            model = TwoLayerMLP(input_dim=input_dim).to(device)
+        elif model_type == 'cnn':
+            model = CNNModel().to(device)
     else:
         raise ValueError('unknown model')
 
@@ -102,7 +107,10 @@ def run_simulation(
     heterogeneity_xi = []
     disturbance_A = []
 
-    test_loader = DataLoader(dataset_test, batch_size=256, shuffle=False)
+    if collate_fn:
+        test_loader = DataLoader(dataset_test, batch_size=256, shuffle=False, collate_fn=collate_fn)
+    else:
+        test_loader = DataLoader(dataset_test, batch_size=256, shuffle=False)
 
     for t in range(T):
         msgs = []
@@ -111,7 +119,12 @@ def run_simulation(
         grads_poisoned = []
         # For dynamic attack, poisoned worker uses global model to determine least likely class
         for w, worker in enumerate(workers):
-            x_batch, y_batch = worker.sample_batch()
+            # Pour le NLP, le batch peut contenir plus que x et y
+            batch_data = worker.sample_batch()
+            if model_type == 'text_classification':
+                y_batch, x_batch, offsets = batch_data
+            else:
+                x_batch, y_batch = batch_data
 
             # ---------- Label-level attacks ----------
             if worker.poisoned:
@@ -131,14 +144,18 @@ def run_simulation(
                     x_batch, y_batch = backdoor_poisoning(x_batch, y_batch, fraction=0.1, target_class=0)
 
 
-            # put all on same device
-            x_batch = x_batch.to(device)
-            y_batch = y_batch.to(device)
+            # put all on same device (déjà fait dans collate_fn pour NLP)
+            if model_type != 'text_classification':
+                x_batch = x_batch.to(device)
+                y_batch = y_batch.to(device)
 
             # ---------- Local gradient computation ----------
             m_prev = momenta[w]
-            # m, local_loss = worker.local_gradient(model, loss_fn, x_batch, y_batch, momentum_state=m_prev, alpha=alpha)
-            m, local_loss = worker.local_gradient_on_model(model, loss_fn, x_batch, y_batch, alpha=alpha, momentum_state=m_prev)
+            if model_type == 'text_classification':
+                # Le worker doit appeler le modèle avec les bons arguments
+                m, local_loss = worker.local_gradient_on_model(model, loss_fn, (x_batch, offsets), y_batch, alpha=alpha, momentum_state=m_prev)
+            else:
+                m, local_loss = worker.local_gradient_on_model(model, loss_fn, x_batch, y_batch, alpha=alpha, momentum_state=m_prev)
 
             # ---------- Gradient-level attacks ----------
             if worker.poisoned:
@@ -209,8 +226,14 @@ def run_simulation(
             class_total = list(0. for i in range(num_classes))
 
             with torch.no_grad():
-                for xb, yb in test_loader:
-                    xb, yb = xb.to(device), yb.to(device)
+                for batch in test_loader:
+                    if model_type == 'text_classification':
+                        yb, xb, offsets = batch
+                        logits = model(xb, offsets)
+                        total = yb.size(0)
+                    else:
+                        xb, yb = batch
+                        xb, yb = xb.to(device), yb.to(device)
                     logits = model(xb)
                     loss_val = loss_fn(logits, yb).item()
                     total_loss += loss_val * xb.size(0)
