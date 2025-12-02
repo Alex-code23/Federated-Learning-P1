@@ -1,0 +1,51 @@
+{
+    "books_toscrape_com": {
+        "counts": {
+            "other": 59,
+            "text-heavy": 11
+        },
+        "entropy": 0.6274303352684106
+    },
+    "numpy_org": {
+        "counts": {
+            "navigation-heavy": 18,
+            "other": 34,
+            "script-heavy": 10,
+            "text-heavy": 8
+        },
+        "entropy": 1.768544908697155
+    },
+    "pandas_pydata_org": {
+        "counts": {
+            "navigation-heavy": 15,
+            "other": 18,
+            "text-heavy": 24,
+            "script-heavy": 13
+        },
+        "entropy": 1.9606140838988044
+    },
+    "quotes_toscrape_com": {
+        "counts": {
+            "navigation-heavy": 44,
+            "text-heavy": 17,
+            "other": 9
+        },
+        "entropy": 1.2974089521695713
+    },
+    "www_djangoproject_com": {
+        "counts": {
+            "other": 20,
+            "text-heavy": 46,
+            "navigation-heavy": 4
+        },
+        "entropy": 1.1503914187111115
+    },
+    "www_python_org": {
+        "counts": {
+            "navigation-heavy": 65,
+            "script-heavy": 4,
+            "other": 1
+        },
+        "entropy": 0.42279861913283
+    }
+}

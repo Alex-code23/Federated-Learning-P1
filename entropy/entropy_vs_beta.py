@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.stats import entropy as sc_entropy
 import os
+import json
 
 np.random.seed(42)
 
@@ -89,6 +90,40 @@ for beta in betas:
     mean_entropies.append(np.mean(entropies))
     std_entropies.append(np.std(entropies))
 
+# --- Chargement des données d'entropie réelles pour définir la zone "réaliste" ---
+
+def load_real_world_entropies():
+    """Charge les entropies depuis les fichiers JSON et les normalise."""
+    real_entropies = []
+    script_dir = os.path.dirname(__file__)
+    
+    # Fichier 1: Heart Disease
+    hd_path = os.path.join(script_dir, 'heart_disease_entropy_analysis.json')
+    if os.path.exists(hd_path):
+        with open(hd_path, 'r') as f:
+            hd_data = json.load(f)
+        for worker_data in hd_data.values():
+            real_entropies.append(worker_data['entropy'])
+
+    # Fichier 2: Web Crawler
+    web_path = os.path.join(script_dir, 'entropy_analysis.json')
+    if os.path.exists(web_path):
+        with open(web_path, 'r') as f:
+            web_data = json.load(f)
+        for site_data in web_data.values():
+            raw_entropy = site_data['entropy']
+            num_classes = len(site_data['counts'])
+            if num_classes > 1:
+                # Normaliser l'entropie (calculée en base 2) par log2(K)
+                normalized_entropy = raw_entropy / np.log2(num_classes)
+                real_entropies.append(normalized_entropy)
+            elif raw_entropy > 0: # Cas étrange, mais pour être sûr
+                real_entropies.append(1.0) # Non normalisable, mais clairement hétérogène
+
+    return real_entropies
+
+real_world_entropies = load_real_world_entropies()
+
 # --- Visualisation ---
 
 plt.figure(figsize=(10, 6))
@@ -105,17 +140,28 @@ plt.ylabel("Entropie moyenne normalisée des travailleurs")
 plt.title("Évolution de l'hétérogénéité des données (entropie) en fonction de Beta")
 plt.grid(True, which="both", ls="--")
 
-# --- Ajout de zones d'interprétation pour le monde réel ---
-# Ces valeurs sont illustratives
-plt.axhspan(0, 0.3, color='red', alpha=0.1, label='Très hétérogène (ex: Hôpitaux spécialisés)')
-plt.axhspan(0.3, 0.7, color='orange', alpha=0.1, label='Modérément hétérogène (ex: Réseau social)')
-plt.axhspan(0.7, 1.0, color='green', alpha=0.1, label='Quasi-IID (rare en pratique)')
-
-# Ajout de textes pour clarifier les zones
-plt.text(0.02, 0.15, 'Scénario "Pathologique"\n(1-2 classes/client)', fontsize=9, color='darkred')
-plt.text(0.2, 0.5, 'Scénario "Réaliste"\n(Préférences utilisateur)', fontsize=9, color='darkorange')
-plt.text(10, 0.8, 'Scénario "Idéaliste"\n(Proche de IID)', fontsize=9, color='darkgreen')
-
+# --- Ajout de zones d'interprétation basées sur les données réelles ---
+if real_world_entropies:
+    # Définir la zone réaliste comme moyenne ± écart-type des entropies observées
+    mean_real_entropy = np.mean(real_world_entropies)
+    std_real_entropy = np.std(real_world_entropies)
+    
+    zone_min = max(0, mean_real_entropy - std_real_entropy)
+    zone_max = min(1, mean_real_entropy + std_real_entropy)
+    
+    # Zone 1: Très hétérogène (plus que nos données réelles)
+    plt.axhspan(0, zone_min, color='red', alpha=0.1, label='Très hétérogène (Pathologique)')
+    plt.text(0.015, zone_min / 2, 'Scénario "Pathologique"\n(1-2 classes/client)', fontsize=9, color='darkred', verticalalignment='center')
+    
+    # Zone 2: Scénario réaliste (basé sur nos datasets)
+    plt.axhspan(zone_min, zone_max, color='orange', alpha=0.15, label=f'Scénario Réaliste (Moyenne ± Écart-type)')
+    plt.text(0.1, (zone_min + zone_max) / 2, f'Scénario "Réaliste"\n(Moyenne ± Écart-type: [{zone_min:.2f}, {zone_max:.2f}])', fontsize=9, color='darkorange', verticalalignment='center')
+    
+    # Zone 3: Quasi-IID (plus homogène que nos données réelles)
+    plt.axhspan(zone_max, 1.0, color='green', alpha=0.1, label='Quasi-IID (Idéaliste)')
+    plt.text(10, (zone_max + 1.0) / 2, 'Scénario "Idéaliste"\n(Proche de IID)', fontsize=9, color='darkgreen', verticalalignment='center')
+else:
+    print("Avertissement: Fichiers d'entropie non trouvés. Les zones du graphique sont illustratives.")
 
 plt.legend()
 

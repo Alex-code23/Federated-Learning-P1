@@ -1,3 +1,4 @@
+import json
 import os
 import pandas as pd
 import numpy as np
@@ -16,6 +17,7 @@ def load_heart_disease_data(data_dir):
     """
     all_data = []
     worker_indices = []
+    worker_names = []
     current_index = 0
 
     # Lister les fichiers de données (ex: processed.cleveland.data, etc.)
@@ -27,6 +29,9 @@ def load_heart_disease_data(data_dir):
         file_path = os.path.join(data_dir, filename)
         # Charger les données en remplaçant '?' par NaN
         df = pd.read_csv(file_path, header=None, names=COLUMN_NAMES, na_values='?')
+        
+        # Extraire le nom du worker (ex: 'cleveland')
+        worker_names.append(filename.split('.')[1])
         
         # Garder une trace du nombre d'échantillons avant de supprimer les lignes
         n_samples_before = len(df)
@@ -57,15 +62,16 @@ def load_heart_disease_data(data_dir):
     # La cible 'num' correspond à la présence de maladie cardiaque. 0 = absence, 1-4 = présence.
     # Pour notre analyse, on binarise la cible : 0 pour "sain" et 1 pour "malade" (>0).
     y = (full_df['num'] > 0).astype(int)
-    
-    return y.values, worker_indices
 
-def analyze_partition_entropy(y, parts):
+    return y.values, worker_indices, worker_names
+
+def analyze_partition_entropy(y, parts, worker_names):
     """
     Analyse l'entropie et d'autres métriques pour une partition de données donnée.
     """
     K = len(np.unique(y)) # Nombre de classes uniques (ici, 2)
     n_clients = len(parts)
+    analysis_data = {}
     
     client_entropies = []
     client_unique_classes = []
@@ -73,7 +79,7 @@ def analyze_partition_entropy(y, parts):
 
     for p in parts:
         client_sample_counts.append(len(p))
-        if len(p) == 0:
+        if not p.any():
             client_entropies.append(0)
             client_unique_classes.append(0)
             continue
@@ -85,6 +91,14 @@ def analyze_partition_entropy(y, parts):
         # Entropie normalisée (entre 0 et 1)
         client_entropies.append(sc_entropy(dist, base=K))
         client_unique_classes.append(len(np.unique(labels_client)))
+
+    for i, worker_name in enumerate(worker_names):
+        labels_client = y[parts[i]]
+        counts = np.bincount(labels_client, minlength=K)
+        analysis_data[worker_name] = {
+            "counts": {k: int(v) for k, v in enumerate(counts)},
+            "entropy": client_entropies[i]
+        }
 
     print("\n--- Analyse de l'hétérogénéité du dataset Heart Disease ---")
     print(f"Nombre total de workers (locations): {n_clients}")
@@ -105,6 +119,17 @@ def analyze_partition_entropy(y, parts):
     print(f"Écart-type de l'entropie: {np.std(client_entropies):.4f}")
     print(f"Entropie Min/Max: {np.min(client_entropies):.4f} / {np.max(client_entropies):.4f}")
 
+    # Sauvegarder les résultats dans le dossier entropy à la racine
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    entropy_dir = os.path.join(project_root, 'entropy')
+    os.makedirs(entropy_dir, exist_ok=True)
+    output_path = os.path.join(entropy_dir, 'heart_disease_entropy_analysis.json')
+    
+    with open(output_path, 'w', encoding='utf-8') as f:
+        json.dump(analysis_data, f, indent=4)
+    
+    print(f"\n💾 Données d'entropie sauvegardées dans : {output_path}")
+
 if __name__ == "__main__":
-    y_full, partitions = load_heart_disease_data(DATA_DIR)
-    analyze_partition_entropy(y_full, partitions)
+    y_full, partitions, worker_names = load_heart_disease_data(DATA_DIR)
+    analyze_partition_entropy(y_full, partitions, worker_names)
