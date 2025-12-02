@@ -95,15 +95,28 @@ plt.figure(figsize=(10, 6))
 mean_entropies = np.array(mean_entropies)
 std_entropies = np.array(std_entropies)
 
-plt.plot(betas, mean_entropies, marker='o', linestyle='-', label="Entropie moyenne normalisée")
+plt.plot(betas, mean_entropies, marker='o', linestyle='-', color='blue', label="Entropie moyenne normalisée")
 plt.fill_between(betas, mean_entropies - std_entropies, mean_entropies + std_entropies,
-                 alpha=0.2, label="Écart-type de l'entropie")
+                 color='blue', alpha=0.2, label="Écart-type de l'entropie")
 
 plt.xscale('log')
 plt.xlabel("Beta (alpha) de la distribution de Dirichlet (échelle log)")
 plt.ylabel("Entropie moyenne normalisée des travailleurs")
 plt.title("Évolution de l'hétérogénéité des données (entropie) en fonction de Beta")
 plt.grid(True, which="both", ls="--")
+
+# --- Ajout de zones d'interprétation pour le monde réel ---
+# Ces valeurs sont illustratives
+plt.axhspan(0, 0.3, color='red', alpha=0.1, label='Très hétérogène (ex: Hôpitaux spécialisés)')
+plt.axhspan(0.3, 0.7, color='orange', alpha=0.1, label='Modérément hétérogène (ex: Réseau social)')
+plt.axhspan(0.7, 1.0, color='green', alpha=0.1, label='Quasi-IID (rare en pratique)')
+
+# Ajout de textes pour clarifier les zones
+plt.text(0.02, 0.15, 'Scénario "Pathologique"\n(1-2 classes/client)', fontsize=9, color='darkred')
+plt.text(0.2, 0.5, 'Scénario "Réaliste"\n(Préférences utilisateur)', fontsize=9, color='darkorange')
+plt.text(10, 0.8, 'Scénario "Idéaliste"\n(Proche de IID)', fontsize=9, color='darkgreen')
+
+
 plt.legend()
 
 # Enregistrer la figure
