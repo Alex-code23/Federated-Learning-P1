@@ -8,9 +8,9 @@ import torch
 from torchvision import datasets, transforms
 
 
-from aggregators import agg_mean, agg_trimmed_mean, agg_coord_median, agg_centered_clipping, agg_faba_simple, agg_lfighter_simple
+from tools.aggregators import agg_mean, agg_trimmed_mean, agg_coord_median, agg_centered_clipping, agg_faba_simple, agg_lfighter_simple
 from simu import run_simulation
-from plot import plot_class_accuracy_evolution, plot_mean_ci_partitions, plot_xi_A_partitions_mean_ci, plot_partitions_aggregators, plot_xi_A_partitions
+from tools.plot import plot_class_accuracy_evolution, plot_mean_ci_partitions, plot_xi_A_partitions_mean_ci, plot_partitions_aggregators, plot_xi_A_partitions
 
 
 

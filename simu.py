@@ -9,11 +9,11 @@ from torch.utils.data import DataLoader
 
 
 
-from data_partition import partition_iid, partition_dirichlet, partition_noniid_by_class, partition_niid_pathological, partition_noniid_by_class_count
-from worker import Worker
-from aggregators import AGGREGATORS
-from models import SoftmaxModel, TwoLayerMLP, CNNModel
-from label_poisoning import dynamic_flip_batch, targeted_flip, partial_poisoning, confidence_based_flip_batch, backdoor_poisoning, static_flip, sign_flip_attack, scale_attack, stealthy_scaled_attack, craft_model_replacement_vector
+from tools.data_partition import partition_iid, partition_dirichlet, partition_noniid_by_class, partition_niid_pathological, partition_noniid_by_class_count
+from tools.worker import Worker
+from tools.aggregators import AGGREGATORS
+from tools.models import SoftmaxModel, TwoLayerMLP, CNNModel
+from tools.label_poisoning import dynamic_flip_batch, targeted_flip, partial_poisoning, confidence_based_flip_batch, backdoor_poisoning, static_flip, sign_flip_attack, scale_attack, stealthy_scaled_attack, craft_model_replacement_vector
 
 # Device configuration
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')

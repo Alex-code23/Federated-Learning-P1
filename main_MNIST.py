@@ -7,7 +7,7 @@ from torchvision import datasets, transforms
 
 
 
-from plot import plot_partitions_aggregators, plot_xi_A_partitions, plot_class_accuracy_evolution
+from tools.plot import plot_partitions_aggregators, plot_xi_A_partitions, plot_class_accuracy_evolution
 from simu import run_simulation
 
 # Device configuration

@@ -11,9 +11,9 @@ from torch.utils.data import DataLoader, TensorDataset
 from datasets import load_dataset
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-from models import SoftmaxModel
+from tools.models import SoftmaxModel
 from simu import run_simulation
-from plot import plot_class_accuracy_evolution, plot_mean_ci_partitions, plot_xi_A_partitions_mean_ci, plot_partitions_aggregators, plot_xi_A_partitions
+from tools.plot import plot_class_accuracy_evolution, plot_mean_ci_partitions, plot_xi_A_partitions_mean_ci, plot_partitions_aggregators, plot_xi_A_partitions
 
 # Device configuration
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
