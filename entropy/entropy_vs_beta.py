@@ -120,6 +120,16 @@ def load_real_world_entropies():
             elif raw_entropy > 0: # Cas étrange, mais pour être sûr
                 real_entropies.append(1.0) # Non normalisable, mais clairement hétérogène
 
+    # Fichier 3: Finance Data
+    finance_path = os.path.join(script_dir, 'finance_entropy_analysis.json')
+    if os.path.exists(finance_path):
+        with open(finance_path, 'r') as f:
+            finance_data = json.load(f)
+        for worker_data in finance_data.values():
+            # L'entropie est déjà normalisée dans le script de génération
+            if 'normalized_entropy' in worker_data:
+                real_entropies.append(worker_data['normalized_entropy'])
+
     return real_entropies
 
 real_world_entropies = load_real_world_entropies()
