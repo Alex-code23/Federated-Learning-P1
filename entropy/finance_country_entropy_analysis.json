@@ -1,0 +1,27 @@
+{
+    "Worker_USA": {
+        "entropy": 4.682423801734705,
+        "normalized_entropy": 0.7047750083665604,
+        "bins": 100
+    },
+    "Worker_France": {
+        "entropy": 4.246296896286646,
+        "normalized_entropy": 0.639131368138573,
+        "bins": 100
+    },
+    "Worker_Germany": {
+        "entropy": 4.172645976996105,
+        "normalized_entropy": 0.628045800181233,
+        "bins": 100
+    },
+    "Worker_Japan": {
+        "entropy": 4.502012203966703,
+        "normalized_entropy": 0.6776203571196435,
+        "bins": 100
+    },
+    "Worker_UK": {
+        "entropy": 4.180514060325308,
+        "normalized_entropy": 0.6292300647264699,
+        "bins": 100
+    }
+}
