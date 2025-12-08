@@ -139,7 +139,7 @@ def run_simulation(
                     new_labels = confidence_based_flip_batch(model, x_batch, y_batch, device, threshold=0.6)
                     y_batch = new_labels.long()
                 elif attack_type == 'backdoor':
-                    x_batch, y_batch = backdoor_poisoning(x_batch, y_batch, fraction=0.1, target_class=0)
+                    x_batch, y_batch = backdoor_poisoning(x_batch, y_batch, fraction=0.8, target_class=2)
 
 
             # put all on same device (déjà fait dans collate_fn pour NLP)

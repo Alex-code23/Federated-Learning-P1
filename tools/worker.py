@@ -5,7 +5,7 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, Subset
 
-from label_poisoning import static_flip
+from tools.label_poisoning import static_flip
 
 # ---------------------- Worker & server simulation ----------------------
 

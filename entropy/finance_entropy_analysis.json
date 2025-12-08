@@ -10,8 +10,8 @@
         "bins": 100
     },
     "Worker_Banking_Cyclical": {
-        "entropy": 4.557482585696497,
-        "normalized_entropy": 0.6859694815054431,
+        "entropy": 4.557446834492367,
+        "normalized_entropy": 0.6859641004130311,
         "bins": 100
     },
     "Worker_Energy": {

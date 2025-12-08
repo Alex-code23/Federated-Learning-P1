@@ -25,10 +25,10 @@ torch.manual_seed(SEED)
 
 AGGREGATORS = {
     'Mean': agg_mean,
-    'TriMean': lambda m: agg_trimmed_mean(m, trim_ratio=0.2),
+    # 'TriMean': lambda m: agg_trimmed_mean(m, trim_ratio=0.2),
     # 'CoordMedian': agg_coord_median,
     'CC': lambda m: agg_centered_clipping(m, clip_threshold=1.0),
-    'FABA': lambda m: agg_faba_simple(m, remove_frac=0.1),
+    # 'FABA': lambda m: agg_faba_simple(m, remove_frac=0.1),
     # 'LFighter': lambda m: agg_lfighter_simple(m, n_clusters=2)
 }
 
@@ -58,11 +58,11 @@ if __name__ == '__main__':
     # quick demo
     W = 10         # total workers
     R = 6         # regular (non-poisoned) workers
-    T = 2           # iterations (petit pour demo)
+    T = 1000           # iterations (petit pour demo)
 
-    partition_list = ['dirichlet','noniid'] # 'iid', 'dirichlet',
+    partition_list = ['noniid'] # 'iid', 'dirichlet',
     # one attack and one model
-    ATTACK = 'static'
+    ATTACK = 'backdoor'
     MODEL = 'softmax'
 
     # Number samples of simulations running
