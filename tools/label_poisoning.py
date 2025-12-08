@@ -62,6 +62,7 @@ def dynamic_flip_batch(model, x_batch, labels=None, device=None):
 def targeted_flip(labels, target_class=0, prob=1.0):
     """
     Replace with target_class with probability prob. Returns torch.LongTensor.
+    Goal is to misclassify to target_class by flipping original labels.
     """
     labels = _to_tensor(labels)
     device = labels.device
@@ -136,6 +137,7 @@ def confidence_based_flip_batch(model, x_batch, labels, device=None, threshold=0
 def add_simple_trigger(x_batch, trigger_value=1.0, size=3, location=(0, 0)):
     """
     Add small square trigger to images in a batch (tensor NxCxHxW).
+    Add a noise to identify the trigger.
     Returns tensor on same device as input.
     """
     xb = _to_tensor(x_batch)
@@ -162,9 +164,11 @@ def backdoor_poisoning(x_batch, labels, fraction=0.1, trigger_fn=add_simple_trig
     n = xb.size(0)
     if n == 0 or fraction <= 0:
         return xb, yb
+    # Select indices to poison
     k = int(max(1, round(fraction * n))) if fraction > 0 else 0
     idx = torch.randperm(n, device=xb.device)[:k]
     xb = xb.clone()
+    # Apply trigger and change labels
     xb[idx] = trigger_fn(xb[idx])
     yb = yb.clone()
     yb[idx] = int(target_class)
@@ -224,3 +228,75 @@ def craft_model_replacement_vector(current_model_vec, target_model_vec, gamma):
     # clip to avoid overflow
     value = torch.clamp(value, -1e6, 1e6)
     return value
+
+
+if __name__ == "__main__":
+    # test each attack individually
+    # easy labels
+    labels = torch.tensor([0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
+    probs = torch.tensor([0.9, 0.1, 0.2, 0.8, 0.4, 0.3, 0.95, 0.05, 0.6, 0.7])
+    x_batch = torch.randn(10, 3, 32, 32)  # dummy images
+    
+    model = torch.nn.Sequential(
+        torch.nn.Flatten(),
+        torch.nn.Linear(3*32*32, 10)
+    )
+
+    print("Original labels:", labels.numpy())
+    print("\n ---- STATIC FLIP ----")
+    print("[Explanation] Static flip does 9 - y:")
+    flipped = static_flip(labels, prob=0.5, num_classes=10)
+    print("Static flip (prob=0.5):", flipped.numpy())
+
+    print("\n ---- DYNAMIC FLIP ----")
+    print("[Explanation] Dynamic flip chooses least likely class according to model:")
+    dynamic = dynamic_flip_batch(model, x_batch, labels)
+    print("Dynamic flip (least likely):", dynamic.numpy())
+
+    print("\n ---- TARGETED FLIP ----")
+    print("[Explanation] Targeted flip changes labels to target_class with given probability:")
+    targeted = targeted_flip(labels, target_class=3, prob=0.5)
+    print("Targeted flip to class 3 (prob=0.5):", targeted.numpy())
+
+    print("\n ---- PARTIAL POISONING ----")
+    print("[Explanation] Partial poisoning flips a fraction of labels using default flip (9 - y):")
+    partial = partial_poisoning(labels, frac=0.4, flip_fn=None, num_classes=10)
+    print("Partial poisoning (frac=0.4):", partial.numpy())
+
+    print("\n ---- CONFIDENCE-BASED FLIP ----")
+    print("[Explanation] Confidence-based flip changes labels where model confidence < threshold:")
+    confidence = confidence_based_flip_batch(model, x_batch, labels, threshold=0.6, flip_to='least')
+    print("Confidence-based flip (threshold=0.6):", confidence.numpy())
+
+    print("\n ---- BACKDOOR POISONING ----")
+    print("[Explanation] Backdoor poisoning adds trigger,, by trigger I mean adding sthg to data, and changes labels to target_class:") 
+    backdoored_x, backdoored_y = backdoor_poisoning(x_batch, labels, fraction=0.3, target_class=7)
+    print("Backdoored labels (fraction=0.3, target_class=7):", backdoored_y.numpy()) 
+
+    print("\n ==== GRADIENT-BASED ATTACKS ====")
+    grad = torch.tensor([1.0, -2.0, 3.0])
+
+    print("\n ---- SIGN FLIP ATTACK ----")
+    print("[Explanation] Sign flip attack negates the gradient and scales by epsilon:")
+    sign_flipped = sign_flip_attack(grad, epsilon=1.0)
+    print("Original grad:", grad.numpy())
+    print("Sign-flipped grad:", sign_flipped.numpy())
+
+    print("\n ---- SCALE ATTACK ----")
+    print("[Explanation] Scale attack multiplies gradient by scale factor and clips to max_norm:")
+    scaled = scale_attack(grad, scale=5.0, max_norm=10.0)
+    print("Scaled grad:", scaled.numpy())
+
+    print("\n ---- STEALTHY SCALED ATTACK ----")
+    print("[Explanation] Stealthy scaled attack nudges gradient toward target direction:")
+    target_dir = torch.tensor([10.0, 10.0, 10.0])
+    stealthy = stealthy_scaled_attack(grad, target_dir, scale=0.5, max_delta=1.0)
+    print("Stealthy scaled grad:", stealthy.numpy())
+
+    print("\n ---- MODEL REPLACEMENT VECTOR ----")
+    print("[Explanation] Model replacement crafts a gradient to push model toward target model:")
+    target_model_vec = torch.tensor([0.0, 0.0, 0.0])
+    replacement = craft_model_replacement_vector(grad, target_model_vec, gamma=0.1)
+    print("Model replacement vector:", replacement.numpy())
+
+

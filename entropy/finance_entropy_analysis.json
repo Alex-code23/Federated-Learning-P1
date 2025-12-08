@@ -1,0 +1,37 @@
+{
+    "Worker_Tech_Volatile": {
+        "entropy": 4.50195210541237,
+        "normalized_entropy": 0.6776113113858684,
+        "bins": 100
+    },
+    "Worker_Stable_Consumer": {
+        "entropy": 4.466658680050218,
+        "normalized_entropy": 0.6722991215440005,
+        "bins": 100
+    },
+    "Worker_Banking_Cyclical": {
+        "entropy": 4.557446834492367,
+        "normalized_entropy": 0.6859641004130311,
+        "bins": 100
+    },
+    "Worker_Energy": {
+        "entropy": 4.389573177381982,
+        "normalized_entropy": 0.6606965972770132,
+        "bins": 100
+    },
+    "Worker_Industrial": {
+        "entropy": 4.331662771105441,
+        "normalized_entropy": 0.6519802126018499,
+        "bins": 100
+    },
+    "Worker_Healthcare": {
+        "entropy": 4.3831374028839285,
+        "normalized_entropy": 0.6597279166923914,
+        "bins": 100
+    },
+    "Worker_Retail": {
+        "entropy": 4.202002950869952,
+        "normalized_entropy": 0.6324644650402089,
+        "bins": 100
+    }
+}
