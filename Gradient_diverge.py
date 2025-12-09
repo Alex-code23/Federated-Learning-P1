@@ -65,7 +65,7 @@ for rnd in range(num_rounds):
         losses.append(loss)
     gradients = torch.stack(gradients)
     
-    mean_grad = gradients[2:].mean(dim=0)
+    mean_grad = gradients.mean(dim=0)
     
     # Record metrics
     grad_norm_poisoned.append(gradients[1].norm().item())
