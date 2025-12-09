@@ -63,13 +63,20 @@ for rnd in range(num_rounds):
             
         gradients.append(g)
         losses.append(loss)
-    gradients = torch.stack(gradients)
     
+    
+    
+
+    gradients = torch.stack(gradients)
+
+    # Calcul de la moyenne SANS le méchant (worker 1)
     mean_grad = gradients.mean(dim=0)
+    good_gradients = torch.stack([gradients[w] for w in range(num_workers) if w != 1])
+    mean_grad_nice = good_gradients.mean(dim=0)
     
     # Record metrics
     grad_norm_poisoned.append(gradients[1].norm().item())
-    grad_norm_mean.append(mean_grad.norm().item())
+    grad_norm_mean.append(mean_grad_nice.norm().item())
     loss_mean_hist.append(sum(losses)/len(losses))
     divergence.append((gradients[1] - mean_grad).norm().item())
     
@@ -84,9 +91,10 @@ for rnd in range(num_rounds):
 plt.figure(figsize=(8,5))
 plt.plot(grad_norm_poisoned, label="Poisoned gradient norm")
 plt.plot(grad_norm_mean, label="Mean gradient norm")
-plt.plot(divergence, label="Divergence ‖g_poison - g_mean‖")
+plt.plot(divergence, label=r"Divergence ‖$\nabla f$_poison - $\nabla f$‖")
 plt.xlabel("Federated round")
 plt.ylabel("Value")
 plt.legend()
 plt.tight_layout()
+plt.savefig("plots/09-12-2025_explosion/divergence.png")
 plt.show()
