@@ -10,7 +10,8 @@ output_dim = 2
 batch_size = 16
 num_workers = 3
 num_rounds = 500
-lr = 0.2
+lr = 0.1
+alpha = 0.1  # momentum
 
 # ----- Model -----
 class SimpleMLP(nn.Module):
@@ -30,63 +31,72 @@ def compute_gradients(model, x, y):
     grad_vec = torch.cat([p.grad.view(-1) for p in model.parameters()])
     return grad_vec, loss.item()
 
-
 # ----- Données extrêmes pour worker 1 -----
 torch.manual_seed(0)
 workers_data = [torch.randn(batch_size, input_dim) for _ in range(num_workers)]
-
-# Worker 1 a des données “explosives”
-workers_data[1] = torch.randn(batch_size, input_dim) * 4.0
+workers_data[1] = torch.randn(batch_size, input_dim) * 4
 workers_labels = [torch.randint(0, output_dim, (batch_size,)) for _ in range(num_workers)]
 
-# Tracking
+# ----- Tracking -----
 grad_norm_poisoned = []
 grad_norm_mean = []
 loss_mean_hist = []
 divergence = []
 
-# Federated training loop
-model = SimpleMLP()
+# ----- Affichage norme max des données -----
+for w, x in enumerate(workers_data):
+    max_norm = x.norm(dim=1).max().item()
+    print(f"Worker {w} max input norm: {max_norm:.4f}")
 
+# ----- Federated training loop -----
+model = SimpleMLP()
 for p in model.parameters():
     nn.init.normal_(p, mean=0.0, std=10.0)
+
+# Initialize momentum vector
+momentum = torch.zeros(sum(p.numel() for p in model.parameters()))
 
 for rnd in range(num_rounds):
     gradients = []
     losses = []
     for w in range(num_workers):
         g, loss = compute_gradients(model, workers_data[w], workers_labels[w])
-        
         # STRONG POISONING: amplify malicious gradient heavily
         if w == 1:
             g = g * 20.0
-            
         gradients.append(g)
         losses.append(loss)
-    gradients = torch.stack(gradients)
     
-    mean_grad = gradients[2:].mean(dim=0)
+    gradients = torch.stack(gradients)
+
+    # Calcul de la moyenne SANS le méchant (worker 1)
+    mean_grad = gradients.mean(dim=0)
+    good_gradients = torch.stack([gradients[w] for w in range(num_workers) if w != 1])
+    mean_grad_nice = good_gradients.mean(dim=0)
     
     # Record metrics
     grad_norm_poisoned.append(gradients[1].norm().item())
-    grad_norm_mean.append(mean_grad.norm().item())
+    grad_norm_mean.append(mean_grad_nice.norm().item())
     loss_mean_hist.append(sum(losses)/len(losses))
     divergence.append((gradients[1] - mean_grad).norm().item())
     
-    # Apply update
+    # ----- Apply update with momentum -----
+    momentum = alpha * momentum + mean_grad
     idx = 0
     for p in model.parameters():
         num = p.numel()
-        p.data -= lr * mean_grad[idx:idx+num].view_as(p)
+        p.data -= lr * momentum[idx:idx+num].view_as(p)
         idx += num
 
 # ----- Plot -----
-plt.figure(figsize=(8,5))
+plt.figure(figsize=(6,4))
 plt.plot(grad_norm_poisoned, label="Poisoned gradient norm")
 plt.plot(grad_norm_mean, label="Mean gradient norm")
-plt.plot(divergence, label="Divergence ‖g_poison - g_mean‖")
+plt.plot(divergence, label=r"Divergence ‖$\nabla f$_poison - $\nabla f$‖")
 plt.xlabel("Federated round")
 plt.ylabel("Value")
+plt.yscale('log')
 plt.legend()
 plt.tight_layout()
+plt.savefig("plots/09-12-2025_explosion/divergence_momentum.png")
 plt.show()
