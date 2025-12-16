@@ -1,3 +1,9 @@
+## Articles Liés sur le theme de l'heterogéneité 
+- [Rethinking Data Heterogeneity in Federated Learning:
+Introducing a New Notion and Standard Benchmarks](https://arxiv.org/pdf/2209.15595).
+Cet article peresente une nouvelle facon de mesurer l'hétérpgénéité grâce à un porduit scalaire spécifique sur les distributions de données.
+- 
+
 
 ## Articles de Recherche qui citent notre Articles
 
